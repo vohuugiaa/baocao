@@ -277,12 +277,15 @@
 
         init();
 
-        function init() {
+        async function init() {
             updateStatusUI();
             renderTeamDropdown();
+            
+            // Chờ tải dữ liệu từ Cloud về xong mới xử lý tiếp
+            await fetchOnlineData();
+            
             processGlobalData();
             switchFilter(currentFilter);
-            fetchOnlineData();
         }
 
         async function fetchOnlineData() {
@@ -294,11 +297,10 @@
                     if (data && data.length > 0) {
                         StorageHelper.save('DataDoiXe_ChamCongSAP_Final_V20', data);
                         savedFiles = data;
-                        processGlobalData();
-                        console.log("Đã tải dữ liệu tuần online!");
+                        console.log("Đã cập nhật dữ liệu tuần từ Cloud!");
                     }
                 }
-            } catch (e) { console.log("Lỗi tải dữ liệu online"); }
+            } catch (e) { console.log("Dùng dữ liệu tuần Local."); }
         }
 
         function openSyncModal() {
