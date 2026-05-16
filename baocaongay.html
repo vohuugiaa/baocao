@@ -320,6 +320,14 @@
 </div>
 
 <script>
+    // Security Check
+    (function() {
+        if (!localStorage.getItem('admin_session')) {
+            window.location.href = 'index.html';
+        }
+    })();
+
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbyoMrQyQqDpj4MyZppH4Oew0xRlIzhYVWfmOsYTOtLO5QiKFC6I4gJrvQGu_jN92u7TdQ/exec";
     let globalDrivers = []; 
     let globalVehicles = [];
     let globalOrders = {}; 
@@ -491,6 +499,18 @@
             });
 
             if (putRes.ok) {
+                // Log to Google Sheets
+                await fetch(GAS_URL, {
+                    method: "POST",
+                    mode: "no-cors",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        action: "log_sync",
+                        userName: localStorage.getItem('admin_session'),
+                        type: "Báo Cáo Ngày"
+                    })
+                });
+
                 alert("✅ Đồng bộ lên GitHub thành công!");
                 closeModal('syncModal');
             } else {

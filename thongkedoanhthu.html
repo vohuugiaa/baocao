@@ -1298,6 +1298,15 @@
 </div>
 
 <script>
+    // Security Check
+    (function() {
+        if (!localStorage.getItem('admin_session')) {
+            window.location.href = 'index.html';
+        }
+    })();
+
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbyoMrQyQqDpj4MyZppH4Oew0xRlIzhYVWfmOsYTOtLO5QiKFC6I4gJrvQGu_jN92u7TdQ/exec";
+
     function initApp() {
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('reportDate').value = today;
@@ -1363,7 +1372,21 @@
                 })
             });
 
-            if (putRes.ok) { alert("✅ Thành công!"); closeModal('syncModal'); }
+            if (putRes.ok) { 
+                // Log to Google Sheets
+                await fetch(GAS_URL, {
+                    method: "POST",
+                    mode: "no-cors",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        action: "log_sync",
+                        userName: localStorage.getItem('admin_session'),
+                        type: "Thống Kê Doanh Thu"
+                    })
+                });
+
+                alert("✅ Thành công!"); closeModal('syncModal'); 
+            }
             else { alert("❌ Lỗi: " + (await putRes.json()).message); }
         } catch (e) { alert("❌ Lỗi kết nối: " + e.message); }
         finally { btn.innerText = "📤 Bắt đầu đồng bộ"; btn.disabled = false; }
