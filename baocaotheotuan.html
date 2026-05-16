@@ -35,6 +35,7 @@
             <div class="flex items-center gap-2">
                 <button id="btnCopy" onclick="copyTableData()" class="bg-teal-600 hover:bg-teal-700 text-white font-bold py-1 px-3 rounded text-[11px] transition flex items-center">📋 Copy Bảng</button>
                 <button onclick="exportToExcel()" class="bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-3 rounded text-[11px] transition flex items-center">📥 Xuất Excel</button>
+                <button onclick="openSyncModal()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-1 px-3 rounded text-[11px] transition flex items-center">🚀 Đẩy Online</button>
                 <button onclick="clearAllFiles()" class="bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-3 rounded text-[11px] transition">🗑️ Xóa Dữ Liệu</button>
             </div>
         </div>
@@ -119,6 +120,24 @@
         </div>
         
         <div class="bg-slate-50 p-1.5 border-t text-[10px] flex justify-center gap-4 text-gray-600 flex-wrap z-10" id="legendBar">
+        </div>
+    </div>
+
+    <!-- Modal Sync -->
+    <div id="syncModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div class="bg-slate-800 text-white px-4 py-3 flex justify-between items-center">
+                <h3 class="font-bold">🚀 Đồng Bộ Lên GitHub</h3>
+                <button onclick="closeModal('syncModal')" class="text-2xl">&times;</button>
+            </div>
+            <div class="p-6">
+                <p class="text-xs text-slate-500 mb-4">Dữ liệu tuần sẽ được lưu vào <b>data/baocaotheotuan.json</b>.</p>
+                <div class="mb-4">
+                    <label class="block text-xs font-bold text-slate-700 mb-1">GitHub Personal Access Token:</label>
+                    <input type="password" id="githubToken" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Nhập mã Token của bạn">
+                </div>
+                <button id="btnSyncSubmit" onclick="syncToGitHub()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg transition">📤 Bắt đầu đồng bộ</button>
+            </div>
         </div>
     </div>
 
@@ -254,6 +273,70 @@
             renderTeamDropdown();
             processGlobalData();
             switchFilter(currentFilter);
+            fetchOnlineData();
+        }
+
+        async function fetchOnlineData() {
+            const url = `https://raw.githubusercontent.com/vohuugiaa/baocao/main/data/baocaotheotuan.json?t=${Date.now()}`;
+            try {
+                const response = await fetch(url);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data && data.length > 0) {
+                        StorageHelper.save('DataDoiXe_ChamCongSAP_Final_V20', data);
+                        savedFiles = data;
+                        processGlobalData();
+                        console.log("Đã tải dữ liệu tuần online!");
+                    }
+                }
+            } catch (e) { console.log("Lỗi tải dữ liệu online"); }
+        }
+
+        function openSyncModal() {
+            document.getElementById('githubToken').value = localStorage.getItem('github_token') || '';
+            document.getElementById('syncModal').classList.remove('hidden');
+        }
+
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+        async function syncToGitHub() {
+            const token = document.getElementById('githubToken').value.trim();
+            if (!token) return alert("Vui lòng nhập Token!");
+            localStorage.setItem('github_token', token);
+
+            const btn = document.getElementById('btnSyncSubmit');
+            btn.innerText = "⏳ Đang xử lý...";
+            btn.disabled = true;
+
+            const path = "data/baocaotheotuan.json";
+            const contentRaw = localStorage.getItem('DataDoiXe_ChamCongSAP_Final_V20');
+            const contentDecompressed = LZString.decompressFromUTF16(contentRaw);
+
+            try {
+                let sha = "";
+                const getRes = await fetch(`https://api.github.com/repos/vohuugiaa/baocao/contents/${path}`, {
+                    headers: { "Authorization": `token ${token}` }
+                });
+                if (getRes.ok) {
+                    const fileData = await getRes.json();
+                    sha = fileData.sha;
+                }
+
+                const b64 = btoa(unescape(encodeURIComponent(contentDecompressed)));
+                const putRes = await fetch(`https://api.github.com/repos/vohuugiaa/baocao/contents/${path}`, {
+                    method: "PUT",
+                    headers: { "Authorization": `token ${token}`, "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        message: `Update weekly data: ${new Date().toLocaleString()}`,
+                        content: b64,
+                        sha: sha
+                    })
+                });
+
+                if (putRes.ok) { alert("✅ Thành công!"); closeModal('syncModal'); }
+                else { alert("❌ Lỗi: " + (await putRes.json()).message); }
+            } catch (e) { alert("❌ Lỗi kết nối: " + e.message); }
+            finally { btn.innerText = "📤 Bắt đầu đồng bộ"; btn.disabled = false; }
         }
         
         // ================= SỰ KIỆN THAY ĐỔI CÁC ĐIỀU KIỆN =================

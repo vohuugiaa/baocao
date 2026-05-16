@@ -931,7 +931,10 @@
    
             </div>
         </div>
-        <div class="header-date" id="headerDate"></div>
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <div class="header-date" id="headerDate"></div>
+            <button class="btn-primary" style="padding: 6px 14px; font-size: 11px;" onclick="openSyncModal()">🚀 Đẩy Online</button>
+        </div>
     </div>
 </div>
 
@@ -1262,13 +1265,28 @@
         </div>
     </div>
 
+</div><div class="modal-overlay" id="syncModal">
+    <div class="modal-content" style="max-width: 450px;">
+        <div class="modal-header">
+            <div class="modal-title">🚀 ĐỒNG BỘ LÊN GITHUB</div>
+            <button class="btn-close" onclick="closeModal('syncModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p style="font-size: 12px; margin-bottom: 15px; color: var(--text-muted);">Dữ liệu thống kê sẽ được lưu vào <b>data/thongke.json</b>.</p>
+            <div style="margin-bottom: 18px;">
+                <label class="input-label" style="margin-bottom: 6px;">GitHub Token:</label>
+                <input type="password" id="githubToken" class="search-input" style="width: 100%;" placeholder="Nhập Token của bạn">
+            </div>
+            <button class="btn-primary" style="width: 100%; justify-content: center;" id="btnSyncSubmit" onclick="syncToGitHub()">📤 Bắt đầu đồng bộ</button>
+        </div>
+    </div>
 </div><div class="modal-overlay" id="detailModal">
     <div class="modal-content">
         <div class="modal-header">
             <div class="modal-title" id="modalTitle">Chi Tiết</div>
             <div style="display:flex; gap:8px; align-items:center;">
                 <button class="btn-export" onclick="exportToExcel('tableMODAL', 'BaoCao_ChiTiet')">📥 Tải Excel</button>
-                <button class="btn-close" onclick="closeModal()">✕</button>
+                <button class="btn-close" onclick="closeModal('detailModal')">✕</button>
             </div>
         </div>
         <div class="modal-body">
@@ -1287,6 +1305,68 @@
         renderHistoryTab();
         checkCachedFiles();
         autoLoadLatest();
+        fetchOnlineData();
+    }
+
+    async function fetchOnlineData() {
+        const url = `https://raw.githubusercontent.com/vohuugiaa/baocao/main/data/thongke.json?t=${Date.now()}`;
+        try {
+            const response = await fetch(url);
+            if (response.ok) {
+                const data = await response.json();
+                if (data && typeof data === 'object') {
+                    localStorage.setItem('xanhsm_v11_history', JSON.stringify(data));
+                    console.log("Đã tải dữ liệu thống kê online!");
+                    autoLoadLatest();
+                }
+            }
+        } catch (e) { }
+    }
+
+    function openSyncModal() {
+        document.getElementById('githubToken').value = localStorage.getItem('github_token') || '';
+        document.getElementById('syncModal').style.display = 'flex';
+    }
+
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+    async function syncToGitHub() {
+        const token = document.getElementById('githubToken').value.trim();
+        if (!token) return alert("Vui lòng nhập Token!");
+        localStorage.setItem('github_token', token);
+
+        const btn = document.getElementById('btnSyncSubmit');
+        btn.innerText = "⏳ Đang đồng bộ...";
+        btn.disabled = true;
+
+        const path = "data/thongke.json";
+        const history = localStorage.getItem('xanhsm_v11_history') || '{}';
+
+        try {
+            let sha = "";
+            const getRes = await fetch(`https://api.github.com/repos/vohuugiaa/baocao/contents/${path}`, {
+                headers: { "Authorization": `token ${token}` }
+            });
+            if (getRes.ok) {
+                const fileData = await getRes.json();
+                sha = fileData.sha;
+            }
+
+            const b64 = btoa(unescape(encodeURIComponent(history)));
+            const putRes = await fetch(`https://api.github.com/repos/vohuugiaa/baocao/contents/${path}`, {
+                method: "PUT",
+                headers: { "Authorization": `token ${token}`, "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    message: `Update stats data: ${new Date().toLocaleString()}`,
+                    content: b64,
+                    sha: sha
+                })
+            });
+
+            if (putRes.ok) { alert("✅ Thành công!"); closeModal('syncModal'); }
+            else { alert("❌ Lỗi: " + (await putRes.json()).message); }
+        } catch (e) { alert("❌ Lỗi kết nối: " + e.message); }
+        finally { btn.innerText = "📤 Bắt đầu đồng bộ"; btn.disabled = false; }
     }
 
     function autoLoadLatest() {
@@ -1301,13 +1381,6 @@
             window.globalVehicles = snap.vehicles || [];
             showDashboardUI();
             document.getElementById('kpi-gmv').innerText = formatMoney(snap.totGMV);
-            document.getElementById('kpi-trip').innerText = snap.totTrip;
-            document.getElementById('kpi-cancel').innerText = snap.totCancel;
-            document.getElementById('kpi-0d').innerText = snap.sum ? snap.sum.b0 : 0;
-            renderDashboardData();
-            let alertBox = document.getElementById('alertViewingHistory');
-            alertBox.style.display = 'flex';
-            alertBox.innerHTML = `🕒 <b>Đang hiển thị dữ liệu lần cuối (Ngày ${dates[0]}).</b> Nạp file mới và bấm Phân Tích để cập nhật. <button onclick="this.parentElement.style.display='none'" style="margin-left:auto; background:var(--blue); border:none; color:white; padding:5px 12px; border-radius:6px; cursor:pointer; font-size:12px; font-weight:700;">✕ Đóng</button>`;
         }
     }
 

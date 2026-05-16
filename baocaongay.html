@@ -103,6 +103,7 @@
             <div>
                 <button class="btn btn-icon" onclick="openHistory()"><span style="font-size:16px;">🕒</span> Lịch sử</button>
                 <button class="btn btn-icon" onclick="openSettings()"><span style="font-size:16px;">⚙️</span> Cài đặt mốc</button>
+                <button class="btn" style="background: var(--info); color: white;" onclick="openSyncModal()">🚀 Đẩy lên Online</button>
             </div>
         </div>
         
@@ -298,6 +299,24 @@
             <button class="btn" style="margin-top:10px; background:var(--danger);" onclick="clearHistory()">🗑 Xoá toàn bộ lịch sử</button>
         </div>
     </div>
+
+<div class="modal-overlay" id="syncModal">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <span>🚀 Đồng Bộ Dữ Liệu Lên GitHub</span>
+            <button class="close-btn" onclick="closeModal('syncModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p style="font-size: 12px; margin-bottom: 15px; color: var(--text-muted);">Dữ liệu sẽ được lưu vào file <b>data/baocaongay.json</b> trên GitHub để mọi người có thể xem online.</p>
+            <div style="margin-bottom: 15px;">
+                <label style="display:block; font-weight:bold; margin-bottom: 5px;">GitHub Personal Access Token:</label>
+                <input type="password" id="githubToken" class="search-box" style="width: 100%;" placeholder="Dán mã Token của bạn vào đây">
+                <p style="font-size: 10px; color: var(--danger); margin-top: 5px;">* Mã này chỉ được lưu tạm trên trình duyệt của bạn.</p>
+            </div>
+            <button class="btn" style="width: 100%; justify-content:center;" onclick="syncToGitHub()" id="btnSyncSubmit">📤 Bắt đầu đồng bộ</button>
+        </div>
+    </div>
+</div>
 </div>
 
 <script>
@@ -404,6 +423,92 @@
         updateLabels();
         if(localStorage.getItem('pro_cache_drv')) document.getElementById('cacheDriver').innerHTML = "<span class='cache-badge'>Đã có dữ liệu lưu tạm</span>";
         if(localStorage.getItem('pro_cache_veh')) document.getElementById('cacheVehicle').innerHTML = "<span class='cache-badge'>Đã có dữ liệu lưu tạm</span>";
+        
+        // Tự động tải dữ liệu từ GitHub khi mở trang
+        fetchOnlineData();
+    }
+
+    async function fetchOnlineData() {
+        const url = `https://raw.githubusercontent.com/vohuugiaa/baocao/main/data/baocaongay.json?t=${Date.now()}`;
+        try {
+            const response = await fetch(url);
+            if (response.ok) {
+                const data = await response.json();
+                if (data && data.length > 0) {
+                    localStorage.setItem('pro_history', JSON.stringify(data));
+                    console.log("Đã tải dữ liệu online thành công!");
+                }
+            }
+        } catch (e) {
+            console.log("Không tìm thấy dữ liệu online hoặc lỗi kết nối.");
+        }
+    }
+
+    function openSyncModal() {
+        const savedToken = localStorage.getItem('github_token') || '';
+        document.getElementById('githubToken').value = savedToken;
+        document.getElementById('syncModal').style.display = 'flex';
+    }
+
+    async function syncToGitHub() {
+        const token = document.getElementById('githubToken').value.trim();
+        if (!token) return alert("Vui lòng nhập Token!");
+        
+        localStorage.setItem('github_token', token);
+        const btn = document.getElementById('btnSyncSubmit');
+        btn.innerHTML = "⏳ Đang đồng bộ...";
+        btn.disabled = true;
+
+        const owner = "vohuugiaa";
+        const repo = "baocao";
+        const path = "data/baocaongay.json";
+        const history = localStorage.getItem('pro_history') || '[]';
+        
+        try {
+            // 1. Lấy SHA của file cũ (nếu có)
+            let sha = "";
+            const getRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`, {
+                headers: { "Authorization": `token ${token}` }
+            });
+            if (getRes.ok) {
+                const fileData = await getRes.json();
+                sha = fileData.sha;
+            }
+
+            // 2. Ghi file mới
+            const content = b64EncodeUnicode(history);
+            const putRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`, {
+                method: "PUT",
+                headers: {
+                    "Authorization": `token ${token}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    message: `Update report data: ${new Date().toLocaleString()}`,
+                    content: content,
+                    sha: sha
+                })
+            });
+
+            if (putRes.ok) {
+                alert("✅ Đồng bộ lên GitHub thành công!");
+                closeModal('syncModal');
+            } else {
+                const err = await putRes.json();
+                alert("❌ Lỗi đồng bộ: " + err.message);
+            }
+        } catch (e) {
+            alert("❌ Lỗi kết nối: " + e.message);
+        } finally {
+            btn.innerHTML = "📤 Bắt đầu đồng bộ";
+            btn.disabled = false;
+        }
+    }
+
+    function b64EncodeUnicode(str) {
+        return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function(match, p1) {
+            return String.fromCharCode('0x' + p1);
+        }));
     }
 
     function updateLabels() {
