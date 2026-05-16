@@ -3,683 +3,247 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hệ Thống Quản Lý Đội Van - All-in-One</title>
-    
-    <!-- Libraries -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
+    <title>Hệ Thống Quản Lý Báo Cáo - Đội Van</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary: #4f46e5;
             --primary-light: #eef2ff;
-            --secondary: #10b981;
             --bg: #f8fafc;
-            --surface: #ffffff;
             --text-main: #1e293b;
             --text-muted: #64748b;
+            --surface: #ffffff;
             --border: #e2e8f0;
-            --card-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-            --card-hover: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+            --accent-green: #10b981;
+            --accent-blue: #3b82f6;
+            --accent-orange: #f59e0b;
         }
 
-        * { font-family: 'Outfit', sans-serif; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
-        
-        body { background-color: var(--bg); color: var(--text-main); height: 100vh; overflow: hidden; display: flex; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+        }
 
-        /* Sidebar Styling */
-        .sidebar { width: 260px; background: white; border-right: 1px solid var(--border); display: flex; flex-direction: column; z-index: 50; }
-        .nav-item { padding: 12px 20px; margin: 4px 12px; border-radius: 12px; cursor: pointer; display: flex; align-items: center; gap: 12px; font-weight: 500; color: var(--text-muted); }
-        .nav-item:hover { background: var(--primary-light); color: var(--primary); }
-        .nav-item.active { background: var(--primary); color: white; box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3); }
-        .nav-item i { font-size: 20px; }
+        body {
+            background-color: var(--bg);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(79, 70, 229, 0.05) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.05) 0px, transparent 50%);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 40px 20px;
+        }
 
-        /* Main Content */
-        .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
-        .header { height: 70px; background: white; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 30px; flex-shrink: 0; }
-        .view-container { flex: 1; overflow-y: auto; padding: 30px; }
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            width: 100%;
+        }
 
-        /* Module Specific Styling (Consolidated) */
-        .glass-card { background: white; border-radius: 20px; border: 1px solid var(--border); box-shadow: var(--card-shadow); padding: 24px; margin-bottom: 24px; }
-        .glass-card:hover { box-shadow: var(--card-hover); transform: translateY(-2px); }
+        header {
+            text-align: center;
+            margin-bottom: 60px;
+            animation: fadeInDown 0.8s ease-out;
+        }
 
-        .btn-primary { background: var(--primary); color: white; padding: 10px 24px; border-radius: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; }
-        .btn-primary:hover { background: #4338ca; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2); }
+        .logo-box {
+            width: 60px;
+            height: 60px;
+            background: var(--primary);
+            border-radius: 18px;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            box-shadow: 0 10px 20px rgba(79, 70, 229, 0.2);
+        }
 
-        /* Tables */
-        .table-responsive { border-radius: 16px; overflow: hidden; border: 1px solid var(--border); background: white; }
-        table { width: 100%; border-collapse: collapse; }
-        th { background: #f8fafc; padding: 12px 16px; text-align: left; font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; border-bottom: 1px solid var(--border); }
-        td { padding: 14px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
-        tr:hover td { background: #f8fafc; }
+        h1 {
+            font-size: clamp(2rem, 5vw, 3rem);
+            font-weight: 800;
+            color: var(--text-main);
+            letter-spacing: -1px;
+            margin-bottom: 8px;
+        }
 
-        /* KPI Cards */
-        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
-        .kpi-card { padding: 20px; border-radius: 20px; background: white; border: 1px solid var(--border); display: flex; flex-direction: column; }
-        .kpi-label { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px; }
-        .kpi-value { font-size: 24px; font-weight: 800; color: var(--text-main); }
+        .subtitle {
+            font-size: 1.1rem;
+            color: var(--text-muted);
+            font-weight: 400;
+        }
 
-        /* Drop Zone */
-        .drop-zone { border: 2px dashed var(--border); border-radius: 16px; padding: 20px; text-align: center; cursor: pointer; background: #f8fafc; }
-        .drop-zone:hover { border-color: var(--primary); background: var(--primary-light); }
-        .drop-zone.active { border-color: var(--secondary); background: #ecfdf5; }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 30px;
+            animation: fadeInUp 1s ease-out;
+        }
 
-        /* Modals */
-        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(4px); z-index: 100; align-items: center; justify-content: center; padding: 20px; }
-        .modal-content { background: white; border-radius: 24px; width: 100%; max-width: 800px; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
+        .card {
+            background: var(--surface);
+            border-radius: 30px;
+            border: 1px solid var(--border);
+            padding: 40px 30px;
+            text-decoration: none;
+            color: inherit;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
 
-        /* Module Switcher Animation */
-        .fade-in { animation: fadeIn 0.3s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .card:hover {
+            transform: translateY(-12px);
+            border-color: var(--primary);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
+        }
 
-        /* Heatmap Tiers */
-        .heat-0 { background: #fef3c7; color: #92400e; }
-        .heat-1 { background: #fee2e2; color: #b91c1c; }
-        .heat-2 { background: #fef9c3; color: #854d0e; }
-        .heat-3 { background: #ecfdf5; color: #065f46; }
-        .heat-4 { background: #d1fae5; color: #064e3b; }
-        .heat-5 { background: #a7f3d0; color: #064e3b; }
-        .heat-6 { background: #6ee7b7; color: #022c22; }
-        .heat-7 { background: #059669; color: #ffffff; }
+        .card::after {
+            content: '→';
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+            font-size: 24px;
+            color: var(--primary);
+            opacity: 0;
+            transform: translateX(-10px);
+            transition: all 0.3s;
+        }
+
+        .card:hover::after {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .icon-box {
+            width: 70px;
+            height: 70px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            margin-bottom: 25px;
+            transition: transform 0.3s;
+        }
+
+        .card:hover .icon-box {
+            transform: scale(1.1) rotate(5deg);
+        }
+
+        .daily { background: #ecfdf5; color: var(--accent-green); }
+        .weekly { background: #eff6ff; color: var(--accent-blue); }
+        .stats { background: #fffbeb; color: var(--accent-orange); }
+
+        h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: var(--text-main);
+        }
+
+        .desc {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            background: var(--primary-light);
+            color: var(--primary);
+            border-radius: 100px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            width: fit-content;
+        }
+
+        footer {
+            margin-top: auto;
+            padding-top: 60px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .domain-btn {
+            display: inline-block;
+            margin-top: 15px;
+            padding: 8px 20px;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 100px;
+            text-decoration: none;
+            color: var(--primary);
+            font-weight: 600;
+            font-size: 0.8rem;
+        }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 640px) {
+            body { padding: 20px; }
+            .grid { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
-<body onload="App.init()">
+<body>
 
-    <!-- Sidebar -->
-    <aside class="sidebar">
-        <div class="p-8 pb-4">
-            <div class="flex items-center gap-3 mb-8">
-                <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white text-xl">🚚</div>
-                <h2 class="font-bold text-xl tracking-tight">Đội Van Pro</h2>
-            </div>
-            
-            <nav class="space-y-1">
-                <div class="nav-item active" onclick="App.switchView('daily', this)">
-                    <span>📅</span> Báo Cáo Ngày
-                </div>
-                <div class="nav-item" onclick="App.switchView('weekly', this)">
-                    <span>📊</span> Báo Cáo Tuần
-                </div>
-                <div class="nav-item" onclick="App.switchView('stats', this)">
-                    <span>📈</span> Thống Kê Doanh Thu
-                </div>
-            </nav>
-        </div>
-        
-        <div class="mt-auto p-6">
-            <div class="bg-indigo-50 rounded-2xl p-4 border border-indigo-100">
-                <p class="text-[10px] uppercase font-bold text-indigo-400 mb-1">Cài đặt online</p>
-                <button onclick="App.openSyncModal()" class="w-full bg-indigo-600 text-white text-xs font-bold py-2 rounded-lg hover:bg-indigo-700">🚀 Đẩy Online</button>
-            </div>
-        </div>
-    </aside>
-
-    <!-- Main Content -->
-    <main class="main-content">
-        <header class="header">
-            <div>
-                <h1 id="viewTitle" class="text-xl font-bold text-slate-800">Báo Cáo Hằng Ngày</h1>
-                <p id="viewSubtitle" class="text-xs text-slate-400 font-medium">Theo dõi hoạt động vận doanh trong ngày</p>
-            </div>
-            
-            <div class="flex items-center gap-4">
-                <div id="statusBadge" class="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-bold border border-emerald-100 uppercase">Hệ thống sẵn sàng</div>
-                <div class="h-8 w-px bg-slate-100"></div>
-                <div class="text-right">
-                    <p id="currentDate" class="text-xs font-bold text-slate-700"></p>
-                    <p class="text-[10px] text-slate-400 font-medium">baocao.congviecdoivan.online</p>
-                </div>
-            </div>
+    <div class="container">
+        <header>
+            <div class="logo-box">🚚</div>
+            <h1>Báo Cáo Đội Van</h1>
+            <p class="subtitle">Hệ thống quản lý vận doanh chuyên nghiệp</p>
+            <a href="https://baocao.congviecdoivan.online" class="domain-btn">baocao.congviecdoivan.online</a>
         </header>
 
-        <div id="viewContainer" class="view-container fade-in">
-            <!-- Dynamic Content Injected Here -->
-        </div>
-    </main>
+        <div class="grid">
+            <a href="baocaongay.html" class="card">
+                <div class="icon-box daily">📅</div>
+                <span class="badge">Hằng ngày</span>
+                <h2>Báo Cáo Ngày</h2>
+                <p class="desc">Xử lý dữ liệu doanh số, GPS và lịch trình trong ngày. Tự động tính toán độ lệch và hiệu quả vận doanh.</p>
+            </a>
 
-    <!-- Shared Modals -->
-    <div id="globalModal" class="modal-overlay" onclick="App.closeModal(event)">
-        <div class="modal-content" onclick="event.stopPropagation()">
-            <div id="modalHeader" class="p-6 border-b flex justify-between items-center bg-slate-50">
-                <h3 id="modalTitle" class="font-bold text-lg">Tiêu đề Modal</h3>
-                <button onclick="App.closeModal()" class="text-2xl text-slate-400 hover:text-slate-600">&times;</button>
-            </div>
-            <div id="modalBody" class="p-6 overflow-y-auto">
-                <!-- Modal content -->
-            </div>
+            <a href="baocaotheotuan.html" class="card">
+                <div class="icon-box weekly">📊</div>
+                <span class="badge">Hàng tuần</span>
+                <h2>Báo Cáo Tuần</h2>
+                <p class="desc">Thống kê chấm công, mức khoán và tỷ lệ nhận chuyến theo chu kỳ 7 ngày. Quản lý hiệu suất tài xế.</p>
+            </a>
+
+            <a href="thongkedoanhthu.html" class="card">
+                <div class="icon-box stats">📈</div>
+                <span class="badge">Tổng hợp</span>
+                <h2>Thống Kê Doanh Thu</h2>
+                <p class="desc">Tổng hợp số liệu từ nhiều ngày. Biểu đồ nhiệt doanh thu và phân tích tăng trưởng hệ thống.</p>
+            </a>
         </div>
+
+        <footer>
+            <p>&copy; 2026 Đội Van Pro. Toàn bộ logic và giao diện báo cáo được bảo lưu.</p>
+        </footer>
     </div>
 
-    <!-- Sync Modal -->
-    <div id="syncModal" class="modal-overlay" onclick="App.closeModal(event, 'syncModal')">
-        <div class="modal-content max-w-md" onclick="event.stopPropagation()">
-            <div class="p-6 border-b flex justify-between items-center bg-indigo-600 text-white">
-                <h3 class="font-bold">🚀 Đồng Bộ Lên GitHub</h3>
-                <button onclick="App.closeModal(null, 'syncModal')" class="text-2xl">&times;</button>
-            </div>
-            <div class="p-8">
-                <p class="text-sm text-slate-500 mb-6">Dữ liệu sẽ được lưu lên Cloud để mọi người có thể xem online.</p>
-                <div class="mb-6">
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-2">GitHub Token:</label>
-                    <input type="password" id="githubToken" class="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Dán mã Token của bạn">
-                    <p class="text-[10px] text-slate-400 mt-2 italic">* Token được bảo mật và chỉ lưu tại trình duyệt này.</p>
-                </div>
-                <button onclick="App.syncAll()" id="btnSyncSubmit" class="w-full bg-indigo-600 text-white font-bold py-4 rounded-xl hover:bg-indigo-700 shadow-lg shadow-indigo-200">Bắt đầu đồng bộ ngay</button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // Core Application Logic
-        const App = {
-            currentView: 'daily',
-            data: {
-                daily: { history: [] },
-                weekly: { history: [] },
-                stats: { history: {} }
-            },
-            config: {
-                moc1: 350000,
-                moc2: 700000,
-                token: localStorage.getItem('github_token') || ''
-            },
-
-            init() {
-                this.updateDate();
-                this.loadLocalStorage();
-                this.switchView('daily', document.querySelector('.nav-item.active'));
-                this.fetchOnline();
-            },
-
-            updateDate() {
-                const now = new Date();
-                const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-                document.getElementById('currentDate').innerText = now.toLocaleDateString('vi-VN', options);
-            },
-
-            switchView(view, el) {
-                this.currentView = view;
-                
-                // Update UI Navigation
-                document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-                el.classList.add('active');
-
-                const titleMap = {
-                    daily: { t: 'Báo Cáo Hằng Ngày', s: 'Theo dõi hoạt động vận doanh trong ngày' },
-                    weekly: { t: 'Báo Cáo Theo Tuần', s: 'Thống kê chấm công và mức khoán' },
-                    stats: { t: 'Thống Kê Doanh Thu', s: 'Biểu đồ nhiệt và tăng trưởng GMV' }
-                };
-
-                document.getElementById('viewTitle').innerText = titleMap[view].t;
-                document.getElementById('viewSubtitle').innerText = titleMap[view].s;
-
-                const container = document.getElementById('viewContainer');
-                container.innerHTML = '<div class="flex items-center justify-center h-full"><p class="text-slate-400 animate-pulse">Đang tải mô-đun...</p></div>';
-
-                setTimeout(() => {
-                    this.renderView(view);
-                }, 100);
-            },
-
-            renderView(view) {
-                const container = document.getElementById('viewContainer');
-                container.className = 'view-container fade-in';
-                
-                if (view === 'daily') DailyModule.render(container);
-                else if (view === 'weekly') WeeklyModule.render(container);
-                else if (view === 'stats') StatsModule.render(container);
-            },
-
-            // --- DATA HELPERS ---
-            loadLocalStorage() {
-                try {
-                    this.data.daily.history = JSON.parse(localStorage.getItem('pro_history') || '[]');
-                    this.data.weekly.history = this.loadCompressed('DataDoiXe_ChamCongSAP_Final_V20') || [];
-                    this.data.stats.history = JSON.parse(localStorage.getItem('xanhsm_v11_history') || '{}');
-                } catch (e) { console.error("Lỗi load data:", e); }
-            },
-
-            loadCompressed(key) {
-                const raw = localStorage.getItem(key);
-                if (!raw) return null;
-                try {
-                    const decomp = LZString.decompressFromUTF16(raw);
-                    return decomp ? JSON.parse(decomp) : JSON.parse(raw);
-                } catch(e) { return JSON.parse(raw); }
-            },
-
-            saveCompressed(key, data) {
-                const comp = LZString.compressToUTF16(JSON.stringify(data));
-                localStorage.setItem(key, comp);
-            },
-
-            // --- ONLINE SYNC ---
-            openSyncModal() {
-                document.getElementById('githubToken').value = localStorage.getItem('github_token') || '';
-                document.getElementById('syncModal').style.display = 'flex';
-            },
-
-            closeModal(e, id = 'globalModal') {
-                document.getElementById(id).style.display = 'none';
-            },
-
-            async fetchOnline() {
-                const badge = document.getElementById('statusBadge');
-                badge.innerText = "⏳ Đang kết nối...";
-                
-                const files = [
-                    { path: 'data/baocaongay.json', key: 'pro_history' },
-                    { path: 'data/baocaotheotuan.json', key: 'DataDoiXe_ChamCongSAP_Final_V20', compress: true },
-                    { path: 'data/thongke.json', key: 'xanhsm_v11_history' }
-                ];
-
-                for (let f of files) {
-                    try {
-                        const res = await fetch(`https://raw.githubusercontent.com/vohuugiaa/baocao/main/${f.path}?t=${Date.now()}`);
-                        if (res.ok) {
-                            const data = await res.json();
-                            if (f.compress) this.saveCompressed(f.key, data);
-                            else localStorage.setItem(f.key, JSON.stringify(data));
-                        }
-                    } catch(e) {}
-                }
-                
-                this.loadLocalStorage();
-                badge.innerText = "✅ Đã đồng bộ Online";
-                badge.className = "px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-bold border border-emerald-100 uppercase";
-                this.renderView(this.currentView);
-            },
-
-            async syncAll() {
-                const token = document.getElementById('githubToken').value.trim();
-                if (!token) return alert("Nhập mã Token!");
-                localStorage.setItem('github_token', token);
-
-                const btn = document.getElementById('btnSyncSubmit');
-                btn.innerText = "⏳ Đang tải...";
-                btn.disabled = true;
-
-                const payloads = [
-                    { path: 'data/baocaongay.json', data: localStorage.getItem('pro_history') || '[]' },
-                    { 
-                        path: 'data/baocaotheotuan.json', 
-                        data: JSON.stringify(this.loadCompressed('DataDoiXe_ChamCongSAP_Final_V20') || []) 
-                    },
-                    { path: 'data/thongke.json', data: localStorage.getItem('xanhsm_v11_history') || '{}' }
-                ];
-
-                try {
-                    for (let p of payloads) {
-                        let sha = "";
-                        const getRes = await fetch(`https://api.github.com/repos/vohuugiaa/baocao/contents/${p.path}`, {
-                            headers: { "Authorization": `token ${token}` }
-                        });
-                        if (getRes.ok) sha = (await getRes.json()).sha;
-
-                        const b64 = btoa(unescape(encodeURIComponent(p.data)));
-                        await fetch(`https://api.github.com/repos/vohuugiaa/baocao/contents/${p.path}`, {
-                            method: "PUT",
-                            headers: { "Authorization": `token ${token}`, "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                                message: `Update data: ${new Date().toLocaleString()}`,
-                                content: b64,
-                                sha: sha
-                            })
-                        });
-                    }
-                    alert("✅ Đã đồng bộ toàn bộ hệ thống lên Online!");
-                    this.closeModal(null, 'syncModal');
-                } catch(e) { alert("Lỗi: " + e.message); }
-                finally { btn.innerText = "Bắt đầu đồng bộ ngay"; btn.disabled = false; }
-            }
-        };
-
-        // --- DAILY MODULE ---
-        const DailyModule = {
-            render(container) {
-                const history = App.data.daily.history;
-                const lastReport = history[0] || null;
-                
-                let html = `
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <div class="lg:col-span-2">
-                            <div class="glass-card">
-                                <h3 class="font-bold text-slate-800 mb-6 flex items-center gap-2">⚙️ Nạp dữ liệu mới</h3>
-                                <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
-                                    <div class="drop-zone" onclick="document.getElementById('fileOrders').click()">
-                                        <input type="file" id="fileOrders" class="hidden" accept=".xlsx,.csv" onchange="DailyModule.handleFile(this, 'Orders')">
-                                        <p class="text-[10px] font-bold text-slate-400 uppercase">Doanh số</p>
-                                        <p id="nameOrders" class="text-xs font-bold mt-1">Chọn file...</p>
-                                    </div>
-                                    <div class="drop-zone" onclick="document.getElementById('fileGps').click()">
-                                        <input type="file" id="fileGps" class="hidden" accept=".xlsx,.csv" onchange="DailyModule.handleFile(this, 'Gps')">
-                                        <p class="text-[10px] font-bold text-slate-400 uppercase">GPS</p>
-                                        <p id="nameGps" class="text-xs font-bold mt-1">Chọn file...</p>
-                                    </div>
-                                    <div class="drop-zone" onclick="document.getElementById('fileOff').click()">
-                                        <input type="file" id="fileOff" class="hidden" accept=".xlsx,.csv" onchange="DailyModule.handleFile(this, 'Off')">
-                                        <p class="text-[10px] font-bold text-slate-400 uppercase">Lịch Off</p>
-                                        <p id="nameOff" class="text-xs font-bold mt-1">Chọn file...</p>
-                                    </div>
-                                </div>
-                                <button onclick="DailyModule.process()" id="btnDailyProcess" class="btn-primary w-full justify-center py-4">🚀 Bắt đầu phân tích báo cáo</button>
-                            </div>
-
-                            <div id="dailyDashboard" style="${lastReport ? '' : 'display:none'}">
-                                <div class="kpi-grid">
-                                    <div class="kpi-card border-l-4 border-l-indigo-500">
-                                        <span class="kpi-label">Tổng doanh thu</span>
-                                        <span class="kpi-value text-indigo-600" id="dailyGmv">${lastReport ? Utils.formatMoney(lastReport.gmv) : '0 đ'}</span>
-                                    </div>
-                                    <div class="kpi-card border-l-4 border-l-emerald-500">
-                                        <span class="kpi-label">Xe vận doanh</span>
-                                        <span class="kpi-value text-emerald-600" id="dailyCars">${lastReport ? lastReport.ordersCount || 0 : 0}</span>
-                                    </div>
-                                    <div class="kpi-card border-l-4 border-l-amber-500">
-                                        <span class="kpi-label">Trung bình/Xe</span>
-                                        <span class="kpi-value text-amber-600" id="dailyAvg">${lastReport ? Utils.formatMoney(lastReport.gmv / (lastReport.ordersCount || 1)) : '0 đ'}</span>
-                                    </div>
-                                </div>
-
-                                <div class="glass-card">
-                                    <div class="flex justify-between items-center mb-6">
-                                        <h3 class="font-bold text-slate-800">Danh sách chi tiết</h3>
-                                        <div class="flex gap-2">
-                                            <button onclick="Utils.copyTable('tableDaily')" class="text-[10px] font-bold bg-slate-100 px-3 py-1 rounded-lg">📋 Copy</button>
-                                            <button onclick="Utils.exportExcel('tableDaily')" class="text-[10px] font-bold bg-indigo-50 text-indigo-600 px-3 py-1 rounded-lg">📥 Excel</button>
-                                        </div>
-                                    </div>
-                                    <div class="table-responsive max-h-[500px]">
-                                        <table id="tableDaily">
-                                            <thead>
-                                                <tr>
-                                                    <th>Tổ</th><th>Tài xế</th><th>Biển số</th><th>Doanh thu</th><th>Cuốc</th><th>GPS (km)</th><th>Lệch</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody id="bodyDaily"></tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="lg:col-span-1">
-                            <div class="glass-card">
-                                <h3 class="font-bold text-slate-800 mb-4">🕒 Lịch sử báo cáo</h3>
-                                <div class="space-y-3">
-                                    ${history.length > 0 ? history.slice(0, 5).map((h, i) => `
-                                        <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex justify-between items-center">
-                                            <div>
-                                                <p class="text-xs font-bold text-slate-700">${h.reportDate || h.time}</p>
-                                                <p class="text-[10px] text-indigo-600 font-bold">${Utils.formatMoney(h.gmv)}</p>
-                                            </div>
-                                            <button onclick="DailyModule.loadHistory(${i})" class="text-[10px] font-bold text-slate-400 hover:text-indigo-600">Xem lại</button>
-                                        </div>
-                                    `).join('') : '<p class="text-xs text-slate-400 text-center py-8">Chưa có dữ liệu</p>'}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                container.innerHTML = html;
-                if (lastReport) this.renderData(lastReport);
-            },
-
-            handleFile(input, type) {
-                if (input.files[0]) document.getElementById('name' + type).innerText = '✅ ' + input.files[0].name;
-            },
-
-            async process() {
-                const fOrd = document.getElementById('fileOrders').files[0];
-                const fGps = document.getElementById('fileGps').files[0];
-                const fOff = document.getElementById('fileOff').files[0];
-                if (!fOrd) return alert("Cần file Doanh Số!");
-                
-                const btn = document.getElementById('btnDailyProcess');
-                btn.innerText = "⌛ Đang xử lý...";
-
-                const orders = await Utils.readExcel(fOrd);
-                const gps = await Utils.readExcel(fGps);
-                const off = await Utils.readExcel(fOff);
-
-                // Full logic from baocaongay.html
-                const stats = this.processDailyLogic(orders, gps, off);
-                
-                App.data.daily.history.unshift(stats);
-                localStorage.setItem('pro_history', JSON.stringify(App.data.daily.history));
-                
-                this.render(document.getElementById('viewContainer'));
-                btn.innerText = "🚀 Bắt đầu phân tích báo cáo";
-            },
-
-            processDailyLogic(orders, gps, off) {
-                let sumGmv = 0;
-                let activeDrivers = {};
-                
-                orders.forEach(o => {
-                    const plate = o['Driver Vehicle Plate'];
-                    const fee = Utils.parseMoney(o['Total Fee Display'] || o['Total Pay Display']);
-                    if (!activeDrivers[plate]) {
-                        activeDrivers[plate] = { name: o['Driver Name'], plate: plate, gmv: 0, count: 0, gps: 0 };
-                    }
-                    activeDrivers[plate].gmv += fee;
-                    activeDrivers[plate].count++;
-                    sumGmv += fee;
-                });
-
-                // Merge GPS...
-                gps.forEach(g => {
-                    const plate = g['Biển số xe'];
-                    if (activeDrivers[plate]) activeDrivers[plate].gps = parseFloat(g['Quãng đường (km)']) || 0;
-                });
-
-                return {
-                    time: new Date().toLocaleString('vi-VN'),
-                    reportDate: new Date().toLocaleDateString('vi-VN'),
-                    gmv: sumGmv,
-                    ordersCount: Object.keys(activeDrivers).size,
-                    details: Object.values(activeDrivers)
-                };
-            },
-
-            renderData(report) {
-                const tbody = document.getElementById('bodyDaily');
-                if (!tbody) return;
-                tbody.innerHTML = report.details.map(d => `
-                    <tr>
-                        <td>Tổ Quản Lý</td>
-                        <td class="font-bold">${d.name}</td>
-                        <td>${d.plate}</td>
-                        <td class="font-bold text-indigo-600">${Utils.formatMoney(d.gmv)}</td>
-                        <td>${d.count}</td>
-                        <td>${d.gps.toFixed(1)}</td>
-                        <td class="${d.gps < 100 ? 'text-red-500 font-bold' : ''}">${(d.gps).toFixed(1)}</td>
-                    </tr>
-                `).join('');
-            },
-
-            loadHistory(idx) {
-                const report = App.data.daily.history[idx];
-                this.renderData(report);
-                document.getElementById('dailyGmv').innerText = Utils.formatMoney(report.gmv);
-                document.getElementById('dailyCars').innerText = report.ordersCount;
-                document.getElementById('dailyAvg').innerText = Utils.formatMoney(report.gmv / (report.ordersCount || 1));
-            }
-        };
-
-        // --- WEEKLY MODULE ---
-        const WeeklyModule = {
-            render(container) {
-                const history = App.data.weekly.history;
-                let html = `
-                    <div class="glass-card">
-                        <div class="flex justify-between items-center mb-8">
-                            <h3 class="font-bold text-slate-800">📊 Quản lý Chấm Công & Mức Khoán</h3>
-                            <div class="flex gap-2">
-                                <button class="btn-primary py-2 px-4 text-xs" onclick="document.getElementById('fileWeekly').click()">Tải file chấm công</button>
-                                <input type="file" id="fileWeekly" class="hidden" multiple onchange="WeeklyModule.handleFiles(this)">
-                            </div>
-                        </div>
-                        <div class="table-responsive">
-                            <table id="tableWeekly">
-                                <thead>
-                                    <tr><th>Tài xế</th><th>Tổ</th><th>Tổng công</th><th>Doanh thu</th><th>Yếu/7 ngày</th><th>% Nhận</th><th>% Hoàn thành</th></tr>
-                                </thead>
-                                <tbody id="bodyWeekly">
-                                    ${history.length > 0 ? this.renderRows(history) : '<tr><td colspan="7" class="text-center py-12 text-slate-400">Chưa có dữ liệu tuần</td></tr>'}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                `;
-                container.innerHTML = html;
-            },
-            renderRows(data) {
-                return data.map(d => `
-                    <tr>
-                        <td class="font-bold">${d.driverName}</td>
-                        <td>${d.squad}</td>
-                        <td>${d.totalWork}</td>
-                        <td class="font-bold text-indigo-600">${Utils.formatMoney(d.totalGmv)}</td>
-                        <td class="${d.weakCount > 2 ? 'text-red-500 font-bold' : ''}">${d.weakCount}</td>
-                        <td>${d.acceptRate}%</td>
-                        <td>${d.completeRate}%</td>
-                    </tr>
-                `).join('');
-            },
-            async handleFiles(input) {
-                const files = Array.from(input.files);
-                if (files.length === 0) return;
-                
-                let allData = [];
-                for (let f of files) {
-                    const rows = await Utils.readExcel(f);
-                    allData = allData.concat(rows);
-                }
-                
-                // Simplified Weekly Logic
-                const processed = this.processWeekly(allData);
-                App.data.weekly.history = processed;
-                App.saveCompressed('DataDoiXe_ChamCongSAP_Final_V20', processed);
-                this.render(document.getElementById('viewContainer'));
-            },
-            processWeekly(rows) {
-                const drivers = {};
-                rows.forEach(r => {
-                    const name = r['Driver Name'];
-                    if (!name) return;
-                    if (!drivers[name]) drivers[name] = { driverName: name, squad: r['Squad'] || 'Tổ 1', totalWork: 0, totalGmv: 0, weakCount: 0, acceptRate: 100, completeRate: 100 };
-                    drivers[name].totalWork++;
-                    const gmv = Utils.parseMoney(r['Total Fee Display']);
-                    drivers[name].totalGmv += gmv;
-                    if (gmv < 350000) drivers[name].weakCount++;
-                });
-                return Object.values(drivers);
-            }
-        };
-
-        // --- STATS MODULE ---
-        const StatsModule = {
-            render(container) {
-                const history = App.data.stats.history;
-                const dates = Object.keys(history).sort((a,b) => new Date(b) - new Date(a));
-                
-                let html = `
-                    <div class="glass-card">
-                        <div class="flex justify-between items-center mb-8">
-                            <div>
-                                <h3 class="font-bold text-slate-800">📈 Phân Tích Doanh Thu Hệ Thống</h3>
-                                <p class="text-xs text-slate-400">Dữ liệu tổng hợp từ các file báo cáo</p>
-                            </div>
-                            <button class="btn-primary" onclick="document.getElementById('fileStats').click()">Nạp file thống kê</button>
-                            <input type="file" id="fileStats" class="hidden" onchange="StatsModule.handleFile(this)">
-                        </div>
-
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                            <div class="p-6 bg-indigo-50 rounded-2xl border border-indigo-100">
-                                <p class="text-[10px] font-bold text-indigo-400 uppercase">Tổng GMV</p>
-                                <p class="text-xl font-black text-indigo-700">${dates.length > 0 ? Utils.formatMoney(history[dates[0]].totGMV) : '0 đ'}</p>
-                            </div>
-                            <div class="p-6 bg-emerald-50 rounded-2xl border border-emerald-100">
-                                <p class="text-[10px] font-bold text-emerald-400 uppercase">Tổng Cuốc</p>
-                                <p class="text-xl font-black text-emerald-700">${dates.length > 0 ? history[dates[0]].totTrip : '0'}</p>
-                            </div>
-                        </div>
-
-                        <div class="table-responsive">
-                            <table id="tableStats">
-                                <thead>
-                                    <tr><th>Ngày</th><th>GMV</th><th>Số cuốc</th><th>Hủy</th><th>Yếu (Móm)</th></tr>
-                                </thead>
-                                <tbody>
-                                    ${dates.length > 0 ? dates.map(d => `
-                                        <tr>
-                                            <td class="font-bold">${d}</td>
-                                            <td class="text-indigo-600 font-bold">${Utils.formatMoney(history[d].totGMV)}</td>
-                                            <td>${history[d].totTrip}</td>
-                                            <td class="text-red-500">${history[d].totCancel}</td>
-                                            <td>${history[d].sum ? history[d].sum.b0 : 0}</td>
-                                        </tr>
-                                    `).join('') : '<tr><td colspan="5" class="text-center py-12 text-slate-400">Chưa có dữ liệu thống kê</td></tr>'}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                `;
-                container.innerHTML = html;
-            },
-            async handleFile(input) {
-                const file = input.files[0];
-                if (!file) return;
-                const rows = await Utils.readExcel(file);
-                
-                // Logic from thongkedoanhthu.html...
-                const snap = {
-                    totGMV: rows.reduce((acc, r) => acc + Utils.parseMoney(r['Total Fee Display']), 0),
-                    totTrip: rows.length,
-                    totCancel: rows.filter(r => r['Status'] === 'Cancelled').length,
-                    sum: { b0: rows.filter(r => Utils.parseMoney(r['Total Fee Display']) === 0).length }
-                };
-                
-                const dateKey = new Date().toLocaleDateString('vi-VN');
-                App.data.stats.history[dateKey] = snap;
-                localStorage.setItem('xanhsm_v11_history', JSON.stringify(App.data.stats.history));
-                this.render(document.getElementById('viewContainer'));
-            }
-        };
-
-        // --- UTILS ---
-        const Utils = {
-            formatMoney(val) {
-                return new Intl.NumberFormat('vi-VN').format(Math.round(val)) + ' đ';
-            },
-            parseMoney(val) {
-                if (!val) return 0;
-                return parseFloat(val.toString().replace(/[^\d]/g, '')) || 0;
-            },
-            readExcel(file) {
-                return new Promise(resolve => {
-                    if (!file) return resolve([]);
-                    const reader = new FileReader();
-                    reader.onload = e => {
-                        const wb = XLSX.read(e.target.result, { type: 'array' });
-                        resolve(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: "" }));
-                    };
-                    reader.readAsArrayBuffer(file);
-                });
-            },
-            copyTable(id) {
-                alert("Đã sao chép bảng!");
-            },
-            exportExcel(id) {
-                alert("Đang xuất file Excel...");
-            }
-        };
-
-    </script>
 </body>
 </html>
