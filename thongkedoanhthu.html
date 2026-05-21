@@ -1509,10 +1509,10 @@
     }
 
     function toggleFilter() { let f = document.getElementById('mainFilterDropdown'); f.style.display = f.style.display==='block'?'none':'block'; }
-    function closeModal() { document.getElementById('detailModal').style.display = 'none'; }
 
     window.onclick = function(e) {
-        if(e.target == document.getElementById('detailModal')) closeModal();
+        if(e.target == document.getElementById('detailModal')) closeModal('detailModal');
+        if(e.target == document.getElementById('syncModal')) closeModal('syncModal');
         if(!e.target.matches('.filter-btn')&&!e.target.closest('.filter-btn')&&!e.target.closest('.filter-dropdown')) {
             let f = document.getElementById('mainFilterDropdown'); if(f) f.style.display='none';
         }
