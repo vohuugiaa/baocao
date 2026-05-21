@@ -1405,7 +1405,11 @@
             window.globalCancels = snap.cancels;
             window.globalVehicles = snap.vehicles || [];
             showDashboardUI();
+            let finalSum = renderDashboardData();
             document.getElementById('kpi-gmv').innerText = formatMoney(snap.totGMV);
+            document.getElementById('kpi-trip').innerText = snap.totTrip || 0;
+            document.getElementById('kpi-cancel').innerText = snap.totCancel || 0;
+            document.getElementById('kpi-0d').innerText = snap.sum ? snap.sum.b0 : (finalSum ? finalSum.b0 : 0);
         }
     }
 
@@ -1456,13 +1460,21 @@
         return (ws!=="-"&&ws!=="") || st.includes("sửa") || st.includes("xưởng") || st.includes("tai nạn") || st.includes("bảo dưỡng") || eg.includes("sửa");
     }
 
-    window.toggleAllFilters = function(cb) { document.querySelectorAll('#mainFilterDropdown input[type="checkbox"]').forEach(el => el.checked = cb.checked); };
-    window.toggleTeamFilters = function(cb, doiId) { document.querySelectorAll('.cb-squad-'+doiId).forEach(el => el.checked = cb.checked); updateAllCheckboxState(); };
+    window.toggleAllFilters = function(cb) {
+        document.querySelectorAll('#mainFilterDropdown input[type="checkbox"]').forEach(el => el.checked = cb.checked);
+        applyFilters();
+    };
+    window.toggleTeamFilters = function(cb, doiId) {
+        document.querySelectorAll('.cb-squad-'+doiId).forEach(el => el.checked = cb.checked);
+        updateAllCheckboxState();
+        applyFilters();
+    };
     window.updateTeamFilterState = function(doiId) {
         let all = document.querySelectorAll('.cb-squad-'+doiId), chk = document.querySelectorAll('.cb-squad-'+doiId+':checked');
         let teamCb = document.querySelector('.cb-team[value="'+doiId+'"]');
         if(teamCb) teamCb.checked = (all.length > 0 && all.length === chk.length);
         updateAllCheckboxState();
+        applyFilters();
     };
     window.updateAllCheckboxState = function() {
         let all = document.querySelectorAll('.cb-team'), chk = document.querySelectorAll('.cb-team:checked');
@@ -1660,41 +1672,222 @@
                 });
             }
 
-            window.globalVehicles = []; let sapToAssignedPlate={}, plateToAssignedDriver={};
-            vehiclesData.forEach(v => {
-                let plate=String(v['Biển số']||"").trim().replace(/[\s\.-]/g,'').toUpperCase();
-                if(!plate) return;
-                let driverRaw=String(v['Tài xế']||"").trim(), isAssigned=driverRaw.length>0, drvName="", drvSap="";
-                if(isAssigned) {
-                    let match=driverRaw.match(/^(.*?)\s*\((.*?)\)$/);
-                    if(match) { drvName=match[1].trim(); drvSap=match[2].trim(); } else drvName=driverRaw;
-                    plateToAssignedDriver[plate]={name:drvName, sap:drvSap};
-                    if(drvSap) sapToAssignedPlate[drvSap]=plate;
+            let driversLookupById = {};
+            let driversLookupByName = {};
+            driversData.forEach(d => {
+                let id = String(d['Mã SAP'] || d['Mã tài xế'] || "").trim();
+                let name = String(d['Họ & tên'] || d['Tài xế'] || "Không rõ").trim();
+                let doi = String(d['Đội'] || "Khác").trim();
+                let to = String(d['Tổ'] || "Chưa phân tổ").trim();
+                let pPhone = String(d['Số điện thoại'] || "").trim();
+                let accStatus = String(d['Trạng thái'] || "").toUpperCase();
+                let gStatus = String(d['Trạng thái gán'] || "").toUpperCase();
+                let dInfo = { id, name, doi, to, phone: pPhone, accStatus, gStatus };
+                if (id) {
+                    driversLookupById[id] = dInfo;
                 }
-                window.globalVehicles.push({plate, isAssigned, driverName:drvName||driverRaw, status:v['Trạng thái cấp 3']||v['Trạng thái xe']||"-", error:v['Nhóm lỗi']||"-", workshop:v['Xưởng dịch vụ']||v['Ghi chú trạng thái']||"-", doi:String(v['Đội']||"Khác/Chưa phân đội").trim(), to:String(v['Tổ']||"Chưa phân tổ").trim()});
+                let lowerName = name.toLowerCase();
+                if (lowerName) {
+                    if (!driversLookupByName[lowerName]) {
+                        driversLookupByName[lowerName] = [];
+                    }
+                    driversLookupByName[lowerName].push(dInfo);
+                }
             });
 
-            window.globalSquadData={}; window.globalDrivers={}; window.globalCancels={};
-            let driverMap={};
-
-            driversData.forEach(d => {
-                let id=String(d['Mã SAP']||d['Mã tài xế']||"").trim(), name=String(d['Họ & tên']||d['Tài xế']||"Không rõ").trim();
-                let doi=String(d['Đội']||"Khác").trim(), to=String(d['Tổ']||"Chưa phân tổ").trim(), pPhone=String(d['Số điện thoại']||"").trim();
-                let plate="";
-                if(id&&sapToAssignedPlate[id]) plate=sapToAssignedPlate[id];
-                else if(name&&!id) { let fp=Object.keys(plateToAssignedDriver).find(p=>plateToAssignedDriver[p].name.toLowerCase()===name.toLowerCase()); if(fp) plate=fp; }
-                let offDetail=offMap[name.toLowerCase()]||offMap[id]||null;
-                if(plate) driverMap[plate]={name,doi,to,phone:pPhone,id};
-                if(!window.globalSquadData[to]) {
-                    window.globalSquadData[to]={doi,txActive:0,assigned:0,op:0,gmv:0,gmvD1:0,gmvD2:0,gmvD3:0,trip:0,tripD1:0,tripD2:0,tripD3:0,arrGMV:{},bkts:{'OFF':[],'0đ':[],'<350k':[],'350-700k':[],'700-1tr':[],'1tr-1tr4':[],'1tr4-1tr7':[],'1tr7-2tr1':[],'>=2.1tr':[]},unassignedDrivers:[]};
-                    window.globalCancels[to]={doi,total:0,reasons:{},list:[]};
+            let findDriverInLookup = (name, id) => {
+                name = String(name || "").trim().toLowerCase();
+                id = String(id || "").trim();
+                if (id && driversLookupById[id]) {
+                    return driversLookupById[id];
                 }
-                if(plate&&!window.globalDrivers[plate]) window.globalDrivers[plate]={plate,id,name,doi,to,phone:pPhone,offDetail,gA:0,tA:0,tripTimes:[],gD1:0,tD1:0,gD2:0,tD2:0,gD3:0,tD3:0};
-                let accStatus=String(d['Trạng thái']||"").toUpperCase(), gStatus=String(d['Trạng thái gán']||"").toUpperCase();
-                if(accStatus==='ACTIVE'||accStatus==='ĐANG HOẠT ĐỘNG') {
-                    window.globalSquadData[to].txActive++;
-                    if(plate&&(!gStatus||(!gStatus.includes('RECLAIMED')&&!gStatus.includes('THU HỒI')))) { window.globalSquadData[to].assigned++; window.globalSquadData[to].arrGMV[plate]=0; }
-                    else { let reason="Chưa có xe gán trên File Danh Sách Xe"; if(plate) reason=`Bị thu hồi trên App`; else if(gStatus) reason=`Trạng thái App: ${gStatus}`; window.globalSquadData[to].unassignedDrivers.push({id,name,phone:pPhone,reason}); }
+                if (name && driversLookupByName[name]) {
+                    let matches = driversLookupByName[name];
+                    if (id) {
+                        let matchedById = matches.find(m => m.id === id);
+                        if (matchedById) return matchedById;
+                    }
+                    return matches[0];
+                }
+                return null;
+            };
+
+            window.globalVehicles = [];
+            let plateToDriverInfo = {};
+            let assignedSaps = new Set();
+            let assignedNames = new Set();
+
+            vehiclesData.forEach(v => {
+                let plate = String(v['Biển số'] || "").trim().replace(/[\s\.-]/g, '').toUpperCase();
+                if (!plate) return;
+                
+                let driverRaw = String(v['Tài xế'] || "").trim();
+                let isAssigned = driverRaw.length > 0;
+                let drvName = "";
+                let drvSap = "";
+                
+                if (isAssigned) {
+                    let match = driverRaw.match(/^(.*?)\s*\((.*?)\)$/);
+                    if (match) {
+                        drvName = match[1].trim();
+                        drvSap = match[2].trim();
+                    } else {
+                        drvName = driverRaw;
+                    }
+                    
+                    let dInfo = findDriverInLookup(drvName, drvSap);
+                    let resolvedDoi = dInfo ? dInfo.doi : String(v['Đội'] || "Khác/Chưa phân đội").trim();
+                    let resolvedTo = dInfo ? dInfo.to : String(v['Tổ'] || "Chưa phân tổ").trim();
+                    let resolvedPhone = dInfo ? dInfo.phone : "";
+                    let resolvedStatus = dInfo ? dInfo.accStatus : "";
+                    let resolvedSap = drvSap || (dInfo ? dInfo.id : "");
+                    let resolvedName = drvName || (dInfo ? dInfo.name : "Không rõ");
+                    
+                    plateToDriverInfo[plate] = {
+                        id: resolvedSap,
+                        name: resolvedName,
+                        doi: resolvedDoi,
+                        to: resolvedTo,
+                        phone: resolvedPhone,
+                        accStatus: resolvedStatus,
+                        offDetail: offMap[resolvedName.toLowerCase()] || offMap[resolvedSap] || null
+                    };
+                    
+                    if (resolvedSap) assignedSaps.add(resolvedSap);
+                    assignedNames.add(resolvedName.toLowerCase());
+                    
+                    window.globalVehicles.push({
+                        plate,
+                        isAssigned: true,
+                        driverName: resolvedName,
+                        status: v['Trạng thái cấp 3'] || v['Trạng thái xe'] || "-",
+                        error: v['Nhóm lỗi'] || "-",
+                        workshop: v['Xưởng dịch vụ'] || v['Ghi chú trạng thái'] || "-",
+                        doi: resolvedDoi,
+                        to: resolvedTo
+                    });
+                } else {
+                    let doi = String(v['Đội'] || "Khác/Chưa phân đội").trim();
+                    let to = String(v['Tổ'] || "Chưa phân tổ").trim();
+                    
+                    window.globalVehicles.push({
+                        plate,
+                        isAssigned: false,
+                        driverName: "",
+                        status: v['Trạng thái cấp 3'] || v['Trạng thái xe'] || "-",
+                        error: v['Nhóm lỗi'] || "-",
+                        workshop: v['Xưởng dịch vụ'] || v['Ghi chú trạng thái'] || "-",
+                        doi: doi,
+                        to: to
+                    });
+                }
+            });
+
+            window.globalSquadData = {};
+            window.globalDrivers = {};
+            window.globalCancels = {};
+            let driverMap = plateToDriverInfo;
+
+            function ensureSquadInit(to, doi) {
+                if (!window.globalSquadData[to]) {
+                    window.globalSquadData[to] = {
+                        doi: doi,
+                        txActive: 0,
+                        assigned: 0,
+                        op: 0,
+                        gmv: 0,
+                        gmvD1: 0,
+                        gmvD2: 0,
+                        gmvD3: 0,
+                        trip: 0,
+                        tripD1: 0,
+                        tripD2: 0,
+                        tripD3: 0,
+                        arrGMV: {},
+                        bkts: {
+                            'OFF': [],
+                            '0đ': [],
+                            '<350k': [],
+                            '350-700k': [],
+                            '700-1tr': [],
+                            '1tr-1tr4': [],
+                            '1tr4-1tr7': [],
+                            '1tr7-2tr1': [],
+                            '>=2.1tr': []
+                        },
+                        unassignedDrivers: []
+                    };
+                    window.globalCancels[to] = {
+                        doi: doi,
+                        total: 0,
+                        reasons: {},
+                        list: []
+                    };
+                }
+            }
+
+            // 1. Populate globalDrivers and globalSquadData for all assigned drivers
+            for (let plate in plateToDriverInfo) {
+                let drv = plateToDriverInfo[plate];
+                ensureSquadInit(drv.to, drv.doi);
+                
+                window.globalDrivers[plate] = {
+                    plate: plate,
+                    id: drv.id,
+                    name: drv.name,
+                    doi: drv.doi,
+                    to: drv.to,
+                    phone: drv.phone,
+                    offDetail: drv.offDetail,
+                    gA: 0,
+                    tA: 0,
+                    tripTimes: [],
+                    gD1: 0,
+                    tD1: 0,
+                    gD2: 0,
+                    tD2: 0,
+                    gD3: 0,
+                    tD3: 0
+                };
+                
+                let isActive = drv.accStatus === 'ACTIVE' || drv.accStatus === 'ĐANG HOẠT ĐỘNG' || drv.accStatus === '';
+                if (isActive) {
+                    window.globalSquadData[drv.to].txActive++;
+                    window.globalSquadData[drv.to].assigned++;
+                    window.globalSquadData[drv.to].arrGMV[plate] = 0;
+                }
+            }
+
+            // 2. Scan active drivers without vehicle assignments
+            driversData.forEach(d => {
+                let id = String(d['Mã SAP'] || d['Mã tài xế'] || "").trim();
+                let name = String(d['Họ & tên'] || d['Tài xế'] || "Không rõ").trim();
+                let accStatus = String(d['Trạng thái'] || "").toUpperCase();
+                let doi = String(d['Đội'] || "Khác").trim();
+                let to = String(d['Tổ'] || "Chưa phân tổ").trim();
+                let pPhone = String(d['Số điện thoại'] || "").trim();
+                let gStatus = String(d['Trạng thái gán'] || "").toUpperCase();
+                
+                let isActive = accStatus === 'ACTIVE' || accStatus === 'ĐANG HOẠT ĐỘNG';
+                if (isActive) {
+                    let isAssignedBySap = id && assignedSaps.has(id);
+                    let isAssignedByName = assignedNames.has(name.toLowerCase());
+                    
+                    if (!isAssignedBySap && !isAssignedByName) {
+                        ensureSquadInit(to, doi);
+                        window.globalSquadData[to].txActive++;
+                        
+                        let reason = "Chưa có xe gán trên File Danh Sách Xe";
+                        if (gStatus) {
+                            reason = `Trạng thái App: ${gStatus}`;
+                        }
+                        window.globalSquadData[to].unassignedDrivers.push({
+                            id,
+                            name,
+                            phone: pPhone,
+                            reason
+                        });
+                    }
                 }
             });
 
