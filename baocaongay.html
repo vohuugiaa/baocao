@@ -3,6 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>
+        (function() {
+            if (!localStorage.getItem('admin_session')) {
+                document.documentElement.style.display = 'none';
+                window.location.href = 'index.html';
+            }
+        })();
+    </script>
     <title>Báo Cáo Hằng Ngày</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
@@ -305,13 +313,6 @@
     // Cấu hình GitHub Token bảo mật (đã mã hóa tránh bot quét tự động)
     const GITHUB_TOKEN = atob("OXNOQzEwNmpGOFk2VjA1b3B4WjdNNUk1SWNQSlJXMmg2TVhsX3BoZw==").split('').reverse().join('');
 
-    // Security Check
-    (function() {
-        if (!localStorage.getItem('admin_session')) {
-            window.location.href = 'index.html';
-        }
-    })();
-
     const GAS_URL = "https://script.google.com/macros/s/AKfycbyoMrQyQqDpj4MyZppH4Oew0xRlIzhYVWfmOsYTOtLO5QiKFC6I4gJrvQGu_jN92u7TdQ/exec";
     let globalDrivers = []; 
     let globalVehicles = [];
@@ -422,6 +423,10 @@
     }
 
     async function fetchOnlineData() {
+        if (localStorage.getItem('local_mode') === 'true') {
+            console.log("Đang ở chế độ dùng trên máy (Local Mode). Không tự động tải dữ liệu từ Cloud.");
+            return;
+        }
         const url = `https://raw.githubusercontent.com/vohuugiaa/baocao/main/data/baocaongay.json?t=${Date.now()}`;
         try {
             const response = await fetch(url);
@@ -498,6 +503,7 @@
             });
 
             if (putRes.ok) {
+                localStorage.removeItem('local_mode'); // Tắt chế độ Local khi đồng bộ thành công
                 // Log to Google Sheets
                 await fetch(GAS_URL, {
                     method: "POST",
@@ -567,7 +573,13 @@
     function clearHistory() {
         if(confirm("Xoá toàn bộ báo cáo đã lưu trước đây?")) {
             localStorage.removeItem('pro_history');
+            localStorage.setItem('local_mode', 'true'); // Chuyển sang chế độ Local
             openHistory();
+            document.getElementById('headerDateHR').innerText = `Chưa có dữ liệu`;
+            if (document.getElementById('dashboardArea')) {
+                document.getElementById('dashboardArea').style.display = 'none';
+            }
+            alert("Đã xóa dữ liệu cục bộ thành công! Bạn đang dùng chế độ Trên Máy (Local). Hãy bấm 'Đẩy Online' nếu bạn muốn đồng bộ dữ liệu trống này lên Cloud.");
         }
     }
 
@@ -585,6 +597,7 @@
     }
 
     async function processData() {
+        localStorage.removeItem('local_mode'); // Tắt chế độ Local khi nạp dữ liệu mới
         const fOrd = document.getElementById('fileOrders').files[0];
         const fGps = document.getElementById('fileGps').files[0];
         const fDrv = document.getElementById('fileDriver').files[0];

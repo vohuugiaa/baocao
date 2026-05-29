@@ -3,6 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>
+        (function() {
+            if (!localStorage.getItem('admin_session')) {
+                document.documentElement.style.display = 'none';
+                window.location.href = 'index.html';
+            }
+        })();
+    </script>
     <title>Thống kê doanh thu</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1286,13 +1294,6 @@
     // Cấu hình GitHub Token bảo mật (đã mã hóa tránh bot quét tự động)
     const GITHUB_TOKEN = atob("OXNOQzEwNmpGOFk2VjA1b3B4WjdNNUk1SWNQSlJXMmg2TVhsX3BoZw==").split('').reverse().join('');
 
-    // Security Check
-    (function() {
-        if (!localStorage.getItem('admin_session')) {
-            window.location.href = 'index.html';
-        }
-    })();
-
     const GAS_URL = "https://script.google.com/macros/s/AKfycbyoMrQyQqDpj4MyZppH4Oew0xRlIzhYVWfmOsYTOtLO5QiKFC6I4gJrvQGu_jN92u7TdQ/exec";
 
     async function initApp() {
@@ -1309,6 +1310,10 @@
     }
 
     async function fetchOnlineData() {
+        if (localStorage.getItem('local_mode') === 'true') {
+            console.log("Chế độ dùng trên máy (Local Mode). Không tự động tải từ Cloud.");
+            return;
+        }
         const url = `https://raw.githubusercontent.com/vohuugiaa/baocao/main/data/thongke.json?t=${Date.now()}`;
         try {
             const response = await fetch(url);
@@ -1376,6 +1381,7 @@
             });
 
             if (putRes.ok) { 
+                localStorage.removeItem('local_mode'); // Tắt chế độ Local khi đồng bộ thành công
                 // Log to Google Sheets
                 await fetch(GAS_URL, {
                     method: "POST",
@@ -1626,6 +1632,7 @@
     window.globalSquadData = {}; window.globalDrivers = {}; window.globalCancels = {}; window.globalVehicles = [];
 
     async function processData() {
+        localStorage.removeItem('local_mode'); // Tắt chế độ Local khi nạp dữ liệu mới
         try {
             document.getElementById('btnProcess').innerHTML = '<span>⏳</span> Đang phân tích...';
             if(!document.getElementById('orderFile').files[0]) {
@@ -2199,6 +2206,7 @@
     }
 
     function saveToHistory(date, snap) {
+        localStorage.removeItem('local_mode'); // Tắt chế độ Local khi lưu lịch sử mới
         let history=JSON.parse(localStorage.getItem('xanhsm_v11_history')||'{}');
         history[date]=snap;
         try { localStorage.setItem('xanhsm_v11_history', JSON.stringify(history)); renderHistoryTab(); }
@@ -2255,7 +2263,14 @@
     function clearHistory() {
         if(confirm("Xóa TOÀN BỘ lịch sử đã phân tích?")) {
             localStorage.removeItem('xanhsm_v11_history');
+            localStorage.setItem('local_mode', 'true'); // Kích hoạt Local Mode
             renderHistoryTab();
+            // Ẩn dashboard UI khi xóa sạch dữ liệu
+            if (document.getElementById('kpiOverview')) document.getElementById('kpiOverview').style.display = 'none';
+            if (document.getElementById('filterCard')) document.getElementById('filterCard').style.display = 'none';
+            if (document.getElementById('tabMenu')) document.getElementById('tabMenu').style.display = 'none';
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            alert("Đã xóa dữ liệu cục bộ thành công! Bạn đang dùng chế độ Trên Máy (Local). Hãy bấm 'Đẩy Online' nếu bạn muốn đồng bộ dữ liệu trống này lên Cloud.");
         }
     }
 </script>

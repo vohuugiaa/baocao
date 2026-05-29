@@ -3,6 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>
+        (function() {
+            if (!localStorage.getItem('admin_session')) {
+                document.documentElement.style.display = 'none';
+                window.location.href = 'index.html';
+            }
+        })();
+    </script>
     <title>Hệ Thống Báo Cáo Đội Xe</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -128,13 +136,6 @@
     <script>
         // Cấu hình GitHub Token bảo mật (đã mã hóa tránh bot quét tự động)
         const GITHUB_TOKEN = atob("OXNOQzEwNmpGOFk2VjA1b3B4WjdNNUk1SWNQSlJXMmg2TVhsX3BoZw==").split('').reverse().join('');
-
-        // Security Check
-        (function() {
-            if (!localStorage.getItem('admin_session')) {
-                window.location.href = 'index.html';
-            }
-        })();
 
         const GAS_URL = "https://script.google.com/macros/s/AKfycbyoMrQyQqDpj4MyZppH4Oew0xRlIzhYVWfmOsYTOtLO5QiKFC6I4gJrvQGu_jN92u7TdQ/exec";
 
@@ -276,6 +277,10 @@
         }
 
         async function fetchOnlineData() {
+            if (localStorage.getItem('local_mode') === 'true') {
+                console.log("Chế độ dùng trên máy (Local Mode). Không tự động tải từ Cloud.");
+                return;
+            }
             const url = `https://raw.githubusercontent.com/vohuugiaa/baocao/main/data/baocaotheotuan.json?t=${Date.now()}`;
             try {
                 const response = await fetch(url);
@@ -345,6 +350,7 @@
                 });
 
                 if (putRes.ok) { 
+                    localStorage.removeItem('local_mode'); // Tắt chế độ Local khi đồng bộ thành công
                     // Log to Google Sheets
                     await fetch(GAS_URL, {
                         method: "POST",
@@ -539,6 +545,7 @@
 
         // ================= XỬ LÝ FILE CHẤM CÔNG =================
         function processFiles(btn) {
+            localStorage.removeItem('local_mode'); // Tắt chế độ Local khi tải lên file mới
             const input = document.getElementById('fileInput');
             if (input.files.length === 0) return alert("Vui lòng chọn ít nhất 1 file chấm công!");
             
@@ -631,10 +638,11 @@
             if(confirm("Thao tác này xóa Lịch sử Chấm công (Giữ nguyên Danh sách Tổ). Xóa?")) {
                 savedFiles = [];
                 StorageHelper.save('DataDoiXe_ChamCongSAP_Final_V20', savedFiles);
+                localStorage.setItem('local_mode', 'true'); // Kích hoạt Local Mode
                 updateStatusUI();
                 processGlobalData();
                 switchFilter(currentFilter);
-                alert("Đã xóa dữ liệu cục bộ thành công! Hãy bấm 'Đẩy Online' nếu bạn muốn xóa dữ liệu này trên Cloud (GitHub) luôn.");
+                alert("Đã xóa dữ liệu cục bộ thành công! Bạn đang dùng chế độ Trên Máy (Local). Hãy bấm 'Đẩy Online' nếu bạn muốn đồng bộ dữ liệu trống này lên Cloud.");
             }
         }
 
