@@ -263,15 +263,16 @@
             return new Date(y, m - 1, d);
         }
 
-        init();
+        pageLoad();
 
-        async function init() {
+        async function pageLoad() {
+            await fetchOnlineData();
+            init();
+        }
+
+        function init() {
             updateStatusUI();
             renderTeamDropdown();
-            
-            // Chờ tải dữ liệu từ Cloud về xong mới xử lý tiếp
-            await fetchOnlineData();
-            
             processGlobalData();
             switchFilter(currentFilter);
         }
