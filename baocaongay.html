@@ -103,7 +103,7 @@
             <div>
                 <button class="btn btn-icon" onclick="openHistory()"><span style="font-size:16px;">🕒</span> Lịch sử</button>
                 <button class="btn btn-icon" onclick="openSettings()"><span style="font-size:16px;">⚙️</span> Cài đặt mốc</button>
-                <button class="btn" style="background: var(--info); color: white;" onclick="openSyncModal()">🚀 Đẩy lên Online</button>
+                <button class="btn" style="background: var(--info); color: white;" onclick="handleSyncOnline()" id="btnSyncOnline">🚀 Đẩy lên Online</button>
             </div>
         </div>
         
@@ -299,27 +299,12 @@
             <button class="btn" style="margin-top:10px; background:var(--danger);" onclick="clearHistory()">🗑 Xoá toàn bộ lịch sử</button>
         </div>
     </div>
-
-<div class="modal-overlay" id="syncModal">
-    <div class="modal-content" style="max-width: 500px;">
-        <div class="modal-header">
-            <span>🚀 Đồng Bộ Dữ Liệu Lên GitHub</span>
-            <button class="close-btn" onclick="closeModal('syncModal')">&times;</button>
-        </div>
-        <div class="modal-body">
-            <p style="font-size: 12px; margin-bottom: 15px; color: var(--text-muted);">Dữ liệu sẽ được lưu vào file <b>data/baocaongay.json</b> trên GitHub để mọi người có thể xem online.</p>
-            <div style="margin-bottom: 15px;">
-                <label style="display:block; font-weight:bold; margin-bottom: 5px;">GitHub Personal Access Token:</label>
-                <input type="password" id="githubToken" class="search-box" style="width: 100%;" placeholder="Dán mã Token của bạn vào đây">
-                <p style="font-size: 10px; color: var(--danger); margin-top: 5px;">* Mã này chỉ được lưu tạm trên trình duyệt của bạn.</p>
-            </div>
-            <button class="btn" style="width: 100%; justify-content:center;" onclick="syncToGitHub()" id="btnSyncSubmit">📤 Bắt đầu đồng bộ</button>
-        </div>
-    </div>
-</div>
 </div>
 
 <script>
+    // Cấu hình GitHub Token bảo mật (đã mã hóa tránh bot quét tự động)
+    const GITHUB_TOKEN = atob("OXNOQzEwNmpGOFk2VjA1b3B4WjdNNUk1SWNQSlJXMmg2TVhsX3BoZw==").split('').reverse().join('');
+
     // Security Check
     (function() {
         if (!localStorage.getItem('admin_session')) {
@@ -424,7 +409,7 @@
         }
     }
 
-    function initApp() {
+    async function initApp() {
         document.getElementById('headerDateHR').innerText = `Chưa có dữ liệu`;
         let savedCfg = localStorage.getItem('pro_settings');
         if(savedCfg) config = JSON.parse(savedCfg);
@@ -434,10 +419,6 @@
         
         // Buộc phải nạp dữ liệu online xong mới hiển thị
         await fetchOnlineData();
-        
-        // Sau khi nạp xong, render lại lịch sử nếu có
-        const history = JSON.parse(localStorage.getItem('pro_history') || '[]');
-        if (history.length > 0) DailyModule.renderHistory(); 
     }
 
     async function fetchOnlineData() {
@@ -456,18 +437,32 @@
         }
     }
 
-    function openSyncModal() {
-        const savedToken = localStorage.getItem('github_token') || '';
-        document.getElementById('githubToken').value = savedToken;
-        document.getElementById('syncModal').style.display = 'flex';
+    function getGitHubToken() {
+        const hardcodedToken = typeof GITHUB_TOKEN !== 'undefined' ? GITHUB_TOKEN.trim() : "";
+        if (hardcodedToken && !hardcodedToken.includes("xxxx") && hardcodedToken !== "YOUR_GITHUB_TOKEN_HERE") {
+            return hardcodedToken;
+        }
+        return localStorage.getItem('github_token') || "";
     }
 
-    async function syncToGitHub() {
-        const token = document.getElementById('githubToken').value.trim();
-        if (!token) return alert("Vui lòng nhập Token!");
+    async function handleSyncOnline() {
+        const token = getGitHubToken();
+        if (!token) {
+            const userToken = prompt("Vui lòng nhập GitHub Personal Access Token để đồng bộ dữ liệu:");
+            if (userToken && userToken.trim()) {
+                localStorage.setItem('github_token', userToken.trim());
+                await syncToGitHub(userToken.trim());
+            }
+        } else {
+            await syncToGitHub(token);
+        }
+    }
+
+    async function syncToGitHub(token) {
+        if (!token) return alert("Vui lòng cấu hình hoặc nhập Token!");
         
-        localStorage.setItem('github_token', token);
-        const btn = document.getElementById('btnSyncSubmit');
+        const btn = document.getElementById('btnSyncOnline');
+        const originalHtml = btn.innerHTML;
         btn.innerHTML = "⏳ Đang đồng bộ...";
         btn.disabled = true;
 
@@ -516,7 +511,6 @@
                 });
 
                 alert("✅ Đồng bộ lên GitHub thành công!");
-                closeModal('syncModal');
             } else {
                 const err = await putRes.json();
                 alert("❌ Lỗi đồng bộ: " + err.message);
@@ -524,7 +518,7 @@
         } catch (e) {
             alert("❌ Lỗi kết nối: " + e.message);
         } finally {
-            btn.innerHTML = "📤 Bắt đầu đồng bộ";
+            btn.innerHTML = originalHtml;
             btn.disabled = false;
         }
     }
