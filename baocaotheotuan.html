@@ -431,7 +431,12 @@
         }
 
         function formatShortDate(dateStr) {
-            if (!dateStr) return new Date().toLocaleDateString('vi-VN').substring(0, 5);
+            if (!dateStr) return "";
+            if (dateStr instanceof Date) {
+                let d = String(dateStr.getDate()).padStart(2, '0');
+                let m = String(dateStr.getMonth() + 1).padStart(2, '0');
+                return `${d}/${m}`;
+            }
             if (!isNaN(dateStr) && typeof dateStr === 'number' && dateStr > 10000) {
                 let jsDate = new Date(Math.round((dateStr - 25569) * 86400 * 1000));
                 let d = String(jsDate.getDate()).padStart(2, '0');
@@ -439,11 +444,23 @@
                 return `${d}/${m}`;
             }
             let s = String(dateStr).trim();
-            let parts = s.split(/[-/]/); 
-            if (parts.length >= 2) {
-                let d = parts[0].padStart(2, '0'); 
-                let m = parts[1].padStart(2, '0'); 
+            let matchYMD = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+            if (matchYMD) {
+                let d = matchYMD[3].padStart(2, '0');
+                let m = matchYMD[2].padStart(2, '0');
                 return `${d}/${m}`;
+            }
+            let parts = s.split(/[-/]/);
+            if (parts.length >= 2) {
+                if (parts[0].length === 4) {
+                    let d = parts[2].split(' ')[0].padStart(2, '0');
+                    let m = parts[1].padStart(2, '0');
+                    return `${d}/${m}`;
+                } else {
+                    let d = parts[0].padStart(2, '0');
+                    let m = parts[1].padStart(2, '0');
+                    return `${d}/${m}`;
+                }
             }
             return s.substring(0, 5);
         }
@@ -760,7 +777,7 @@
             if (savedFiles.length === 0) {
                 document.getElementById('tableHeader').innerHTML = "";
                 document.getElementById('analysisTableBody').innerHTML = '<tr><td class="text-center py-8 text-gray-500">Chưa có dữ liệu. Vui lòng tải các file chấm công lên.</td></tr>';
-                updateTabUI('tabAll', '💰 Tất Cả (Có Doanh Thu)', 0);
+                updateTabUI('tabAll', '💰 Tất Cả', 0);
                 updateTabUI('tabLow', `📉 Yếu (≥${SO_LAN_YEU_THRESHOLD} Lần/7 Ngày)`, 0);
                 updateTabUI('tabCong', '⚖️ Theo Dõi & Quản Lý Công', 0);
                 return;
@@ -866,11 +883,11 @@
 
             allDriversList = arrDrivers;
 
-            let countAll = allDriversList.filter(d => d.totalRev > 0).length;
+            let countAll = allDriversList.length;
             let countLow = allDriversList.filter(d => d.isWeak).length; 
             let countCong = allDriversList.length; 
 
-            updateTabUI('tabAll', '💰 Tất Cả (Có Doanh Thu)', countAll);
+            updateTabUI('tabAll', '💰 Tất Cả', countAll);
             updateTabUI('tabLow', `📉 Yếu (≥${SO_LAN_YEU_THRESHOLD} Lần/7 Ngày)`, countLow);
             updateTabUI('tabCong', '⚖️ Theo Dõi & Quản Lý Công', countCong);
 
@@ -935,7 +952,7 @@
             let displayList = [];
             
             if (currentFilter === 'all') {
-                displayList = allDriversList.filter(d => d.totalRev > 0); 
+                displayList = [...allDriversList]; 
             } else if (currentFilter === 'low') {
                 displayList = allDriversList.filter(d => d.isWeak);
             } else if (currentFilter === 'cong') {
