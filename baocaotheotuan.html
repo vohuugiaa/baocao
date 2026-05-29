@@ -631,7 +631,10 @@
             if(confirm("Thao tác này xóa Lịch sử Chấm công (Giữ nguyên Danh sách Tổ). Xóa?")) {
                 savedFiles = [];
                 StorageHelper.save('DataDoiXe_ChamCongSAP_Final_V20', savedFiles);
-                init();
+                updateStatusUI();
+                processGlobalData();
+                switchFilter(currentFilter);
+                alert("Đã xóa dữ liệu cục bộ thành công! Hãy bấm 'Đẩy Online' nếu bạn muốn xóa dữ liệu này trên Cloud (GitHub) luôn.");
             }
         }
 
