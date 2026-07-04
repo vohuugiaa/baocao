@@ -266,7 +266,7 @@
         pageLoad();
 
         async function pageLoad() {
-            await fetchOnlineData();
+            // await fetchOnlineData();
             init();
         }
 
@@ -305,16 +305,8 @@
         }
 
         async function handleSyncOnline() {
-            const token = getGitHubToken();
-            if (!token) {
-                const userToken = prompt("Vui lòng nhập GitHub Personal Access Token để đồng bộ dữ liệu:");
-                if (userToken && userToken.trim()) {
-                    localStorage.setItem('github_token', userToken.trim());
-                    await syncToGitHub(userToken.trim());
-                }
-            } else {
-                await syncToGitHub(token);
-            }
+            alert("Đã tắt tính năng đồng bộ online. Dữ liệu chỉ được lưu trên máy.");
+            return;
         }
 
         async function syncToGitHub(token) {

@@ -1302,7 +1302,7 @@
         document.getElementById('headerDate').textContent = new Date().toLocaleDateString('vi-VN', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
         
         // Chờ nạp dữ liệu thống kê từ Cloud về xong mới render
-        await fetchOnlineData();
+        // await fetchOnlineData();
         
         renderHistoryTab();
         checkCachedFiles();
@@ -1336,16 +1336,8 @@
     }
 
     async function handleSyncOnline() {
-        const token = getGitHubToken();
-        if (!token) {
-            const userToken = prompt("Vui lòng nhập GitHub Personal Access Token để đồng bộ dữ liệu:");
-            if (userToken && userToken.trim()) {
-                localStorage.setItem('github_token', userToken.trim());
-                await syncToGitHub(userToken.trim());
-            }
-        } else {
-            await syncToGitHub(token);
-        }
+        alert("Đã tắt tính năng đồng bộ online. Dữ liệu chỉ được lưu trên máy.");
+        return;
     }
 
     async function syncToGitHub(token) {
