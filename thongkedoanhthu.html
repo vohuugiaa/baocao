@@ -1509,6 +1509,11 @@
 
     function toggleFilter() { let f = document.getElementById('mainFilterDropdown'); f.style.display = f.style.display==='block'?'none':'block'; }
 
+    window.closeModal = function(id) {
+        const modal = document.getElementById(id);
+        if(modal) modal.style.display = 'none';
+    }
+
     window.onclick = function(e) {
         if(e.target == document.getElementById('detailModal')) closeModal('detailModal');
         if(e.target == document.getElementById('syncModal')) closeModal('syncModal');
