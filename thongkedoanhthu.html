@@ -1599,7 +1599,7 @@
     }
 
     function extractRevenue(row) {
-        let targetKey = Object.keys(row).find(k => k.trim().toLowerCase()==='total pay display');
+        let targetKey = Object.keys(row).find(k => k.trim().toLowerCase()==='total fee display' || k.trim().toLowerCase()==='total pay display' || k.trim().toLowerCase()==='doanh thu');
         if(targetKey && row[targetKey]!==undefined && row[targetKey]!==null && row[targetKey]!=="") {
             let s = String(row[targetKey]).trim().replace(/[đ₫a-zA-Z\s]/g,'');
             if(s.includes(',')&&s.includes('.')) s=s.replace(/,/g,'');
@@ -1903,23 +1903,42 @@
                 let timeStr=o['Completed Time']||o['Order Time']||o['Create Time'], oTime=parseDateToISO(timeStr);
                 let isAct=oTime===actDate, isD1=oTime===d1Date, isD2=oTime===d2Date, isD3=oTime===d3Date;
                 if(!isAct&&!isD1&&!isD2&&!isD3) return;
-                let plate=String(o['Driver Vehicle Plate']||o['Biển số']||"").trim().replace(/[\s\.-]/g,'').toUpperCase();
-                let doi=driverMap[plate]?driverMap[plate].doi:"Khác", to=driverMap[plate]?driverMap[plate].to:"Chưa rành";
-                let driverName=driverMap[plate]?driverMap[plate].name:"Không rõ/Tài xế mới", driverPhone=driverMap[plate]?driverMap[plate].phone:"", driverId=driverMap[plate]?driverMap[plate].id:"-";
+                let plate = String(o['Driver Vehicle Plate'] || o['Biển số'] || "").trim().replace(/[\s\.-]/g,'').toUpperCase();
+                let sapId = String(o['Sap Profile Id'] || o['Mã nhân viên'] || "").trim();
+                let dInfo = null, offDetail = null;
+                if (sapId && driversLookupById[sapId]) {
+                    dInfo = driversLookupById[sapId];
+                    offDetail = offMap[dInfo.name.toLowerCase()] || offMap[sapId] || null;
+                } else if (plate && driverMap[plate]) {
+                    dInfo = driverMap[plate];
+                    offDetail = dInfo.offDetail;
+                }
+                let doi = dInfo ? dInfo.doi : "Khác";
+                let to = dInfo ? dInfo.to : "Chưa rành";
+                let driverName = dInfo ? dInfo.name : "Không rõ/Tài xế mới";
+                let driverPhone = dInfo ? dInfo.phone : "";
+                let driverId = dInfo ? dInfo.id : (sapId || "-");
+                if (!offDetail && driverName) { offDetail = offMap[driverName.toLowerCase()] || offMap[driverId] || null; }
+                let assignedPlate = plate;
+                if (!assignedPlate && dInfo && dInfo.id) {
+                    for(let p in driverMap) { if (driverMap[p].id === dInfo.id) { assignedPlate = p; break; } }
+                }
+                let driverKey = assignedPlate || sapId || driverName;
+
                 if(!window.globalSquadData[to]) { window.globalSquadData[to]={doi,txActive:0,assigned:0,op:0,gmv:0,gmvD1:0,gmvD2:0,gmvD3:0,trip:0,tripD1:0,tripD2:0,tripD3:0,arrGMV:{},bkts:{'OFF':[],'0đ':[],'<350k':[],'350-700k':[],'700-1tr':[],'1tr-1tr4':[],'1tr4-1tr7':[],'1tr7-2tr1':[],'>=2.1tr':[]},unassignedDrivers:[]}; window.globalCancels[to]={doi,total:0,reasons:{},list:[]}; }
-                if(plate&&!window.globalDrivers[plate]) window.globalDrivers[plate]={plate,id:driverId,name:driverName,doi,to,phone:driverPhone,offDetail:null,gA:0,tA:0,tripTimes:[],gD1:0,tD1:0,gD2:0,tD2:0,gD3:0,tD3:0};
+                if(driverKey&&!window.globalDrivers[driverKey]) window.globalDrivers[driverKey]={plate: plate || "-",id:driverId,name:driverName,doi,to,phone:driverPhone,offDetail:offDetail,gA:0,tA:0,tripTimes:[],gD1:0,tD1:0,gD2:0,tD2:0,gD3:0,tD3:0};
                 let stt=String(o['Status']||o['Trạng thái']||"").toUpperCase(), oId=o['Order ID']||o['Mã Đơn Hàng']||Math.random().toString();
                 if(stt.includes('CANCEL')||stt.includes('HỦY')||stt.includes('FAILED')) {
-                    if(isAct&&!seenA.has(oId+"_C")) { seenA.add(oId+"_C"); totCancel++; let rs=o['Cancel Reason']||o['Lý do hủy']||"Không rõ lý do"; window.globalCancels[to].total++; window.globalCancels[to].reasons[rs]=(window.globalCancels[to].reasons[rs]||0)+1; window.globalCancels[to].list.push({plate:plate||"Không rõ",name:driverName,phone:driverPhone,reason:rs,time:extractTime(timeStr)||"-"}); }
+                    if(isAct&&!seenA.has(oId+"_C")) { seenA.add(oId+"_C"); totCancel++; let rs=o['Cancel Reason']||o['Lý do hủy']||"Không rõ lý do"; window.globalCancels[to].total++; window.globalCancels[to].reasons[rs]=(window.globalCancels[to].reasons[rs]||0)+1; window.globalCancels[to].list.push({plate:plate||"-",name:driverName,phone:driverPhone,reason:rs,time:extractTime(timeStr)||"-"}); }
                     return;
                 }
                 let isRevenue=stt.includes('COMPLETED')||stt.includes('HOÀN THÀNH')||stt.includes('IN PROCESS')||stt.includes('ĐANG TRONG CHUYẾN');
                 if(isRevenue) {
                     let m=extractRevenue(o);
-                    if(isAct&&!seenA.has(oId)) { seenA.add(oId); totGMV+=m; totTrip++; window.globalSquadData[to].gmv+=m; window.globalSquadData[to].trip++; if(plate) { if(window.globalSquadData[to].arrGMV[plate]===undefined) window.globalSquadData[to].arrGMV[plate]=0; window.globalSquadData[to].arrGMV[plate]+=m; window.globalDrivers[plate].gA+=m; window.globalDrivers[plate].tA++; let t=extractTime(timeStr); if(t) window.globalDrivers[plate].tripTimes.push(t); } }
-                    else if(isD1&&!seenD1.has(oId)) { seenD1.add(oId); window.globalSquadData[to].gmvD1+=m; window.globalSquadData[to].tripD1++; if(plate){window.globalDrivers[plate].gD1+=m; window.globalDrivers[plate].tD1++;} }
-                    else if(isD2&&!seenD2.has(oId)) { seenD2.add(oId); window.globalSquadData[to].gmvD2+=m; window.globalSquadData[to].tripD2++; if(plate){window.globalDrivers[plate].gD2+=m; window.globalDrivers[plate].tD2++;} }
-                    else if(isD3&&!seenD3.has(oId)) { seenD3.add(oId); window.globalSquadData[to].gmvD3+=m; window.globalSquadData[to].tripD3++; if(plate){window.globalDrivers[plate].gD3+=m; window.globalDrivers[plate].tD3++;} }
+                    if(isAct&&!seenA.has(oId)) { seenA.add(oId); totGMV+=m; totTrip++; window.globalSquadData[to].gmv+=m; window.globalSquadData[to].trip++; if(driverKey) { if(window.globalSquadData[to].arrGMV[driverKey]===undefined) window.globalSquadData[to].arrGMV[driverKey]=0; window.globalSquadData[to].arrGMV[driverKey]+=m; window.globalDrivers[driverKey].gA+=m; window.globalDrivers[driverKey].tA++; let t=extractTime(timeStr); if(t) window.globalDrivers[driverKey].tripTimes.push(t); } }
+                    else if(isD1&&!seenD1.has(oId)) { seenD1.add(oId); window.globalSquadData[to].gmvD1+=m; window.globalSquadData[to].tripD1++; if(driverKey){window.globalDrivers[driverKey].gD1+=m; window.globalDrivers[driverKey].tD1++;} }
+                    else if(isD2&&!seenD2.has(oId)) { seenD2.add(oId); window.globalSquadData[to].gmvD2+=m; window.globalSquadData[to].tripD2++; if(driverKey){window.globalDrivers[driverKey].gD2+=m; window.globalDrivers[driverKey].tD2++;} }
+                    else if(isD3&&!seenD3.has(oId)) { seenD3.add(oId); window.globalSquadData[to].gmvD3+=m; window.globalSquadData[to].tripD3++; if(driverKey){window.globalDrivers[driverKey].gD3+=m; window.globalDrivers[driverKey].tD3++;} }
                 }
             });
 
