@@ -1599,7 +1599,7 @@
     }
 
     function extractRevenue(row) {
-        let targetKey = Object.keys(row).find(k => k.trim().toLowerCase()==='total fee display' || k.trim().toLowerCase()==='total pay display' || k.trim().toLowerCase()==='doanh thu');
+        let targetKey = Object.keys(row).find(k => k.trim().toLowerCase()==='total fee display');
         if(targetKey && row[targetKey]!==undefined && row[targetKey]!==null && row[targetKey]!=="") {
             let s = String(row[targetKey]).trim().replace(/[đ₫a-zA-Z\s]/g,'');
             if(s.includes(',')&&s.includes('.')) s=s.replace(/,/g,'');
@@ -1932,7 +1932,7 @@
                     if(isAct&&!seenA.has(oId+"_C")) { seenA.add(oId+"_C"); totCancel++; let rs=o['Cancel Reason']||o['Lý do hủy']||"Không rõ lý do"; window.globalCancels[to].total++; window.globalCancels[to].reasons[rs]=(window.globalCancels[to].reasons[rs]||0)+1; window.globalCancels[to].list.push({plate:plate||"-",name:driverName,phone:driverPhone,reason:rs,time:extractTime(timeStr)||"-"}); }
                     return;
                 }
-                let isRevenue=stt.includes('COMPLETED')||stt.includes('HOÀN THÀNH')||stt.includes('IN PROCESS')||stt.includes('ĐANG TRONG CHUYẾN');
+                let isRevenue = true; // All non-cancelled orders are treated as revenue-generating
                 if(isRevenue) {
                     let m=extractRevenue(o);
                     if(isAct&&!seenA.has(oId)) { seenA.add(oId); totGMV+=m; totTrip++; window.globalSquadData[to].gmv+=m; window.globalSquadData[to].trip++; if(driverKey) { if(window.globalSquadData[to].arrGMV[driverKey]===undefined) window.globalSquadData[to].arrGMV[driverKey]=0; window.globalSquadData[to].arrGMV[driverKey]+=m; window.globalDrivers[driverKey].gA+=m; window.globalDrivers[driverKey].tA++; let t=extractTime(timeStr); if(t) window.globalDrivers[driverKey].tripTimes.push(t); } }
