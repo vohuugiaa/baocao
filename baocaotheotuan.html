@@ -113,10 +113,18 @@
         </div>
 
         <div class="bg-slate-50 border-b px-1 pt-1 pb-0 overflow-x-auto whitespace-nowrap z-10 flex space-x-1" id="tabContainer">
-            <button id="tabAll" onclick="switchFilter('all')" class="py-1 px-1 min-w-[140px] rounded-t transition bg-blue-50 text-blue-700 border-b-2 border-blue-700 text-center">Đang tải...</button>
-            <button id="tabLow" onclick="switchFilter('low')" class="py-1 px-1 min-w-[140px] rounded-t transition text-slate-500 hover:bg-gray-200 border-b-2 border-transparent text-center">Đang tải...</button>
-            <button id="tabCong" onclick="switchFilter('cong')" class="py-1 px-1 min-w-[140px] rounded-t transition text-slate-500 hover:bg-gray-200 border-b-2 border-transparent text-center">Đang tải...</button>
-            <button id="tabUn06" onclick="switchFilter('un06')" class="py-1 px-1 min-w-[140px] rounded-t transition text-slate-500 hover:bg-gray-200 border-b-2 border-transparent text-center">Đang tải...</button>
+            <button id="tabAll" onclick="switchFilter('all')" class="py-1 px-1 min-w-[130px] rounded-t transition bg-blue-50 text-blue-700 border-b-2 border-blue-700 text-center">Đang tải...</button>
+            <button id="tabLow" onclick="switchFilter('low')" class="py-1 px-1 min-w-[130px] rounded-t transition text-slate-500 hover:bg-gray-200 border-b-2 border-transparent text-center">Đang tải...</button>
+            <button id="tabCong" onclick="switchFilter('cong')" class="py-1 px-1 min-w-[130px] rounded-t transition text-slate-500 hover:bg-gray-200 border-b-2 border-transparent text-center">Đang tải...</button>
+            <button id="tabUn06" onclick="switchFilter('un06')" class="py-1 px-1 min-w-[130px] rounded-t transition text-slate-500 hover:bg-gray-200 border-b-2 border-transparent text-center">Đang tải...</button>
+            <button id="tabNhan" onclick="switchFilter('nhan')" class="py-1 px-1 min-w-[130px] rounded-t transition text-slate-500 hover:bg-gray-200 border-b-2 border-transparent text-center">Đang tải...</button>
+            <button id="tabHoanThanh" onclick="switchFilter('hoanthanh')" class="py-1 px-1 min-w-[130px] rounded-t transition text-slate-500 hover:bg-gray-200 border-b-2 border-transparent text-center">Đang tải...</button>
+            <button id="tabHuy" onclick="switchFilter('huy')" class="py-1 px-1 min-w-[130px] rounded-t transition text-slate-500 hover:bg-gray-200 border-b-2 border-transparent text-center">Đang tải...</button>
+        </div>
+
+        <div id="subFilterBar" class="bg-slate-100/90 border-b border-slate-200 px-3 py-1.5 flex items-center gap-2 text-[11px] z-10" style="display: none;">
+            <span class="font-bold text-slate-600 text-[10px] uppercase tracking-wider">Phân Nhóm:</span>
+            <div id="subFilterButtons" class="flex items-center gap-1.5"></div>
         </div>
 
         <div class="flex-1 overflow-auto excel-table-container bg-white relative">
@@ -212,6 +220,7 @@
         }
         
         let currentFilter = 'all'; 
+        let currentSubFilter = 'all'; // 'all', 'bad', 'good'
         let currentDisplayList = []; 
         let selectedTeams = []; 
         let allDriversList = [];
@@ -220,7 +229,10 @@
             'all': { col: '', asc: false },
             'low': { col: '', asc: false },
             'cong': { col: '', asc: false },
-            'un06': { col: '', asc: false }
+            'un06': { col: '', asc: false },
+            'nhan': { col: 'avgNhan', asc: true },
+            'hoanthanh': { col: 'avgHoanThanh', asc: true },
+            'huy': { col: 'avgHuy', asc: false }
         };
 
         // ================= HÀM XỬ LÝ CHUỖI VÀ NGÀY THÁNG =================
@@ -599,8 +611,20 @@
                             
                             let maCongRaw = getFuzzyValue(row, 'hệ thống chấm công', 'mã công', 'chấm công', 'macong');
                             let congChinh = parseNumber(getFuzzyValue(row, 'công chính', 'số công chuẩn', 'congchinh'));
-                            let tyLeNhan = parseNumber(getFuzzyValue(row, 'tỷ lệ nhận chuyến', 'tylenhanchuyen'));
+                            let tyLeNhan = parseNumber(getFuzzyValue(row, 'tỷ lệ nhận chuyến', 'tỷ lệ nhận', 'tylenhanchuyen', 'tylenhan'));
                             let tyLeHoanThanh = parseNumber(getFuzzyValue(row, 'tỷ lệ hoàn thành', 'tylehoanthanh'));
+                            let rawHuy = getFuzzyValue(row, 'tỷ lệ hủy chuyến', 'tỷ lệ huỷ chuyến', 'tỷ lệ hủy đơn', 'tỷ lệ huỷ đơn', 'tỷ lệ hủy', 'tỷ lệ huỷ', 'tylehuychuyen', 'tylehuy');
+
+                            if (tyLeNhan > 0 && tyLeNhan <= 1) tyLeNhan = Math.round(tyLeNhan * 100);
+                            if (tyLeHoanThanh > 0 && tyLeHoanThanh <= 1) tyLeHoanThanh = Math.round(tyLeHoanThanh * 100);
+
+                            let tyLeHuy = 0;
+                            if (rawHuy !== undefined && rawHuy !== "") {
+                                tyLeHuy = parseNumber(rawHuy);
+                                if (tyLeHuy > 0 && tyLeHuy <= 1) tyLeHuy = Math.round(tyLeHuy * 100);
+                            } else if (dSo > 0 && tyLeHoanThanh > 0) {
+                                tyLeHuy = Math.max(0, 100 - tyLeHoanThanh);
+                            }
 
                             let hasCong = (congChinh >= 1) ? 1 : 0;
                             let maCong = String(maCongRaw || "").toUpperCase().trim();
@@ -614,7 +638,8 @@
                                 maCong: maCong,
                                 hasCong: hasCong,
                                 tyLeNhan: tyLeNhan,
-                                tyLeHoanThanh: tyLeHoanThanh
+                                tyLeHoanThanh: tyLeHoanThanh,
+                                tyLeHuy: tyLeHuy
                             });
                         });
 
@@ -792,6 +817,8 @@
                             ma: tx.ma, ten: tx.ten, to: teamName, dataByDate: {}, 
                             totalRev: 0, totalCong: 0, totalZeroCong: 0, totalUn06: 0,
                             lowDates: [], totalLowDays: 0, avgGMV: 0, daysWithRev: 0,
+                            validRateDays: 0, sumNhan: 0, sumHoanThanh: 0, sumHuy: 0,
+                            avgNhan: 0, avgHoanThanh: 0, avgHuy: 0,
                             isWeak: false 
                         };
                     }
@@ -828,14 +855,39 @@
                         }
                     }
                     
+                    let dInfo = driverMap[tx.ma];
+
+                    // TÍNH TOÁN TỶ LỆ HỦY & KIỂM TRA NGÀY HỢP LỆ (CÓ DOANH THU, BỎ QUA OFF & UN06)
+                    let tHuy = tx.tyLeHuy;
+                    if (tHuy === undefined || tHuy === null) {
+                        if (tx.doanhSo > 0 && tx.tyLeHoanThanh !== undefined && tx.tyLeHoanThanh > 0) {
+                            tHuy = Math.max(0, 100 - tx.tyLeHoanThanh);
+                        } else {
+                            tHuy = 0;
+                        }
+                    }
+
+                    let isOff = tx.maCong && String(tx.maCong).toUpperCase().includes("OFF");
+                    let isUn06 = tx.maCong && String(tx.maCong).toUpperCase().includes("UN06");
+                    let hasRevenue = tx.doanhSo > 0;
+                    let isValidRateDay = hasRevenue && !isOff && !isUn06;
+
+                    if (isValidRateDay) {
+                        dInfo.validRateDays++;
+                        dInfo.sumNhan += (tx.tyLeNhan || 0);
+                        dInfo.sumHoanThanh += (tx.tyLeHoanThanh || 0);
+                        dInfo.sumHuy += (tHuy || 0);
+                    }
+
                     let finalTxData = { 
                         ...tx, 
+                        tyLeHuy: tHuy,
+                        isValidRateDay: isValidRateDay,
                         dynIsViolation: dynIsViolation, 
                         dynReason: dynReason,
                         shortReason: shortReason
                     };
                     
-                    let dInfo = driverMap[tx.ma];
                     dInfo.dataByDate[currentDay] = finalTxData;
 
                     dInfo.totalRev += tx.doanhSo;
@@ -860,6 +912,9 @@
             
             arrDrivers.forEach(d => {
                 d.avgGMV = d.daysWithRev > 0 ? (d.totalRev / d.daysWithRev) : 0;
+                d.avgNhan = d.validRateDays > 0 ? (d.sumNhan / d.validRateDays) : 0;
+                d.avgHoanThanh = d.validRateDays > 0 ? (d.sumHoanThanh / d.validRateDays) : 0;
+                d.avgHuy = d.validRateDays > 0 ? (d.sumHuy / d.validRateDays) : 0;
 
                 d.lowDates.sort((a, b) => a - b);
                 
@@ -887,10 +942,18 @@
             let countCong = allDriversList.length; 
             let countUn06 = allDriversList.filter(d => d.totalUn06 > 0).length;
 
-            updateTabUI('tabAll', '💰 Tất Cả', countAll);
-            updateTabUI('tabLow', `📉 Yếu (≥${SO_LAN_YEU_THRESHOLD} Lần/7 Ngày)`, countLow);
-            updateTabUI('tabCong', '⚖️ Theo Dõi & Quản Lý Công', countCong);
-            updateTabUI('tabUn06', '⚠️ Lỗi UN06', countUn06);
+            let countBadNhan = allDriversList.filter(d => d.validRateDays > 0 && d.avgNhan < TY_LE_NHAN_MIN).length;
+            let countBadHoanThanh = allDriversList.filter(d => d.validRateDays > 0 && d.avgHoanThanh < TY_LE_HOAN_THANH_MIN).length;
+            let maxHuyThreshold = Math.max(0, 100 - TY_LE_HOAN_THANH_MIN);
+            let countBadHuy = allDriversList.filter(d => d.validRateDays > 0 && d.avgHuy > maxHuyThreshold).length;
+
+            updateTabUI('tabAll', '💰 Tất Cả', `${countAll} TX`);
+            updateTabUI('tabLow', `📉 Yếu (≥${SO_LAN_YEU_THRESHOLD} Lần/7 Ngày)`, `${countLow} TX`);
+            updateTabUI('tabCong', '⚖️ Theo Dõi & Quản Lý Công', `${countCong} TX`);
+            updateTabUI('tabUn06', '⚠️ Lỗi UN06', `${countUn06} TX`);
+            updateTabUI('tabNhan', '🎯 % Nhận Chuyến', `${countBadNhan} Yếu / ${countAll} TX`);
+            updateTabUI('tabHoanThanh', '✅ % Hoàn Thành', `${countBadHoanThanh} Yếu / ${countAll} TX`);
+            updateTabUI('tabHuy', '❌ % Hủy Đơn', `${countBadHuy} Cao / ${countAll} TX`);
 
             switchFilter(currentFilter);
         }
@@ -899,31 +962,84 @@
         function updateTabUI(tabId, title, count) {
             let btn = document.getElementById(tabId);
             if (btn) {
+                let countText = String(count).includes("TX") ? count : `${count} TX`;
                 btn.innerHTML = `
                     <span class="block text-[11px] font-semibold">${title}</span>
-                    <span class="block text-sm font-black mt-0.5">${count} TX</span>
+                    <span class="block text-xs font-black mt-0.5">${countText}</span>
                 `;
             }
         }
 
         function switchFilter(filterType) {
             currentFilter = filterType;
+            currentSubFilter = 'all';
             
-            let tabs = ['all', 'low', 'cong', 'un06'];
+            let tabs = ['all', 'low', 'cong', 'un06', 'nhan', 'hoanthanh', 'huy'];
             tabs.forEach(t => {
                 let btn = document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1));
-                if (btn) btn.className = "py-1 px-1 min-w-[140px] rounded-t transition text-slate-500 hover:bg-gray-200 border-b-2 border-transparent text-center";
+                if (btn) btn.className = "py-1 px-1 min-w-[130px] rounded-t transition text-slate-500 hover:bg-gray-200 border-b-2 border-transparent text-center";
             });
 
             let activeBtn = document.getElementById('tab' + filterType.charAt(0).toUpperCase() + filterType.slice(1));
             if(activeBtn) {
-                if(filterType === 'all') activeBtn.className = "py-1 px-1 min-w-[140px] rounded-t transition bg-blue-50 text-blue-700 border-b-2 border-blue-700 text-center";
-                else if(filterType === 'low') activeBtn.className = "py-1 px-1 min-w-[140px] rounded-t transition bg-orange-50 text-orange-700 border-b-2 border-orange-500 text-center";
-                else if(filterType === 'cong') activeBtn.className = "py-1 px-1 min-w-[140px] rounded-t transition bg-purple-50 text-purple-700 border-b-2 border-purple-600 text-center";
-                else if(filterType === 'un06') activeBtn.className = "py-1 px-1 min-w-[140px] rounded-t transition bg-red-50 text-red-700 border-b-2 border-red-600 text-center";
+                if(filterType === 'all') activeBtn.className = "py-1 px-1 min-w-[130px] rounded-t transition bg-blue-50 text-blue-700 border-b-2 border-blue-700 text-center";
+                else if(filterType === 'low') activeBtn.className = "py-1 px-1 min-w-[130px] rounded-t transition bg-orange-50 text-orange-700 border-b-2 border-orange-500 text-center";
+                else if(filterType === 'cong') activeBtn.className = "py-1 px-1 min-w-[130px] rounded-t transition bg-purple-50 text-purple-700 border-b-2 border-purple-600 text-center";
+                else if(filterType === 'un06') activeBtn.className = "py-1 px-1 min-w-[130px] rounded-t transition bg-red-50 text-red-700 border-b-2 border-red-600 text-center";
+                else if(filterType === 'nhan') activeBtn.className = "py-1 px-1 min-w-[130px] rounded-t transition bg-teal-50 text-teal-700 border-b-2 border-teal-600 text-center";
+                else if(filterType === 'hoanthanh') activeBtn.className = "py-1 px-1 min-w-[130px] rounded-t transition bg-emerald-50 text-emerald-700 border-b-2 border-emerald-600 text-center";
+                else if(filterType === 'huy') activeBtn.className = "py-1 px-1 min-w-[130px] rounded-t transition bg-rose-50 text-rose-700 border-b-2 border-rose-600 text-center";
             }
             
+            renderSubFilterBar();
             renderDisplayList();
+        }
+
+        function switchSubFilter(sub) {
+            currentSubFilter = sub;
+            renderSubFilterBar();
+            renderDisplayList();
+        }
+
+        function renderSubFilterBar() {
+            let bar = document.getElementById('subFilterBar');
+            let btnsContainer = document.getElementById('subFilterButtons');
+            if (!bar || !btnsContainer) return;
+
+            if (!['nhan', 'hoanthanh', 'huy'].includes(currentFilter)) {
+                bar.style.display = 'none';
+                return;
+            }
+
+            bar.style.display = 'flex';
+            let html = '';
+            let countAll = allDriversList.length;
+
+            if (currentFilter === 'nhan') {
+                let countBad = allDriversList.filter(d => d.validRateDays > 0 && d.avgNhan < TY_LE_NHAN_MIN).length;
+                let countGood = allDriversList.filter(d => d.validRateDays > 0 && d.avgNhan >= TY_LE_NHAN_MIN).length;
+                
+                html += `<button onclick="switchSubFilter('all')" class="px-2 py-0.5 rounded font-bold transition ${currentSubFilter==='all' ? 'bg-slate-700 text-white shadow-sm' : 'bg-white text-slate-600 border border-slate-300 hover:bg-slate-200'}">Tất Cả (${countAll})</button>`;
+                html += `<button onclick="switchSubFilter('bad')" class="px-2 py-0.5 rounded font-bold transition ${currentSubFilter==='bad' ? 'bg-rose-600 text-white shadow-sm' : 'bg-white text-rose-600 border border-rose-300 hover:bg-rose-50'}">🚨 Nhóm Xấu (&lt;${TY_LE_NHAN_MIN}%): ${countBad} TX</button>`;
+                html += `<button onclick="switchSubFilter('good')" class="px-2 py-0.5 rounded font-bold transition ${currentSubFilter==='good' ? 'bg-emerald-600 text-white shadow-sm' : 'bg-white text-emerald-600 border border-emerald-300 hover:bg-emerald-50'}">✅ Nhóm Tốt (&ge;${TY_LE_NHAN_MIN}%): ${countGood} TX</button>`;
+            } else if (currentFilter === 'hoanthanh') {
+                let countBad = allDriversList.filter(d => d.validRateDays > 0 && d.avgHoanThanh < TY_LE_HOAN_THANH_MIN).length;
+                let countGood = allDriversList.filter(d => d.validRateDays > 0 && d.avgHoanThanh >= TY_LE_HOAN_THANH_MIN).length;
+                
+                html += `<button onclick="switchSubFilter('all')" class="px-2 py-0.5 rounded font-bold transition ${currentSubFilter==='all' ? 'bg-slate-700 text-white shadow-sm' : 'bg-white text-slate-600 border border-slate-300 hover:bg-slate-200'}">Tất Cả (${countAll})</button>`;
+                html += `<button onclick="switchSubFilter('bad')" class="px-2 py-0.5 rounded font-bold transition ${currentSubFilter==='bad' ? 'bg-rose-600 text-white shadow-sm' : 'bg-white text-rose-600 border border-rose-300 hover:bg-rose-50'}">🚨 Nhóm Xấu (&lt;${TY_LE_HOAN_THANH_MIN}%): ${countBad} TX</button>`;
+                html += `<button onclick="switchSubFilter('good')" class="px-2 py-0.5 rounded font-bold transition ${currentSubFilter==='good' ? 'bg-emerald-600 text-white shadow-sm' : 'bg-white text-emerald-600 border border-emerald-300 hover:bg-emerald-50'}">✅ Nhóm Tốt (&ge;${TY_LE_HOAN_THANH_MIN}%): ${countGood} TX</button>`;
+            } else if (currentFilter === 'huy') {
+                let maxHuy = Math.max(0, 100 - TY_LE_HOAN_THANH_MIN);
+                let countBad = allDriversList.filter(d => d.validRateDays > 0 && d.avgHuy > maxHuy).length;
+                let countGood = allDriversList.filter(d => d.validRateDays > 0 && d.avgHuy <= maxHuy).length;
+                
+                html += `<button onclick="switchSubFilter('all')" class="px-2 py-0.5 rounded font-bold transition ${currentSubFilter==='all' ? 'bg-slate-700 text-white shadow-sm' : 'bg-white text-slate-600 border border-slate-300 hover:bg-slate-200'}">Tất Cả (${countAll})</button>`;
+                html += `<button onclick="switchSubFilter('bad')" class="px-2 py-0.5 rounded font-bold transition ${currentSubFilter==='bad' ? 'bg-rose-600 text-white shadow-sm' : 'bg-white text-rose-600 border border-rose-300 hover:bg-rose-50'}">🚨 Hủy Cao (&gt;${maxHuy}%): ${countBad} TX</button>`;
+                html += `<button onclick="switchSubFilter('good')" class="px-2 py-0.5 rounded font-bold transition ${currentSubFilter==='good' ? 'bg-emerald-600 text-white shadow-sm' : 'bg-white text-emerald-600 border border-emerald-300 hover:bg-emerald-50'}">✅ Hủy Thấp (&le;${maxHuy}%): ${countGood} TX</button>`;
+            }
+
+            btnsContainer.innerHTML = html;
         }
 
         function handleSort(colName) {
@@ -961,6 +1077,19 @@
                 displayList = [...allDriversList]; 
             } else if (currentFilter === 'un06') {
                 displayList = allDriversList.filter(d => d.totalUn06 > 0);
+            } else if (currentFilter === 'nhan') {
+                if (currentSubFilter === 'bad') displayList = allDriversList.filter(d => d.validRateDays > 0 && d.avgNhan < TY_LE_NHAN_MIN);
+                else if (currentSubFilter === 'good') displayList = allDriversList.filter(d => d.validRateDays > 0 && d.avgNhan >= TY_LE_NHAN_MIN);
+                else displayList = [...allDriversList];
+            } else if (currentFilter === 'hoanthanh') {
+                if (currentSubFilter === 'bad') displayList = allDriversList.filter(d => d.validRateDays > 0 && d.avgHoanThanh < TY_LE_HOAN_THANH_MIN);
+                else if (currentSubFilter === 'good') displayList = allDriversList.filter(d => d.validRateDays > 0 && d.avgHoanThanh >= TY_LE_HOAN_THANH_MIN);
+                else displayList = [...allDriversList];
+            } else if (currentFilter === 'huy') {
+                let maxHuy = Math.max(0, 100 - TY_LE_HOAN_THANH_MIN);
+                if (currentSubFilter === 'bad') displayList = allDriversList.filter(d => d.validRateDays > 0 && d.avgHuy > maxHuy);
+                else if (currentSubFilter === 'good') displayList = allDriversList.filter(d => d.validRateDays > 0 && d.avgHuy <= maxHuy);
+                else displayList = [...allDriversList];
             }
 
             let searchText = document.getElementById('searchInput').value.toLowerCase().trim();
@@ -972,7 +1101,7 @@
             }
 
             let currentSort = tabSortMemory[currentFilter];
-            if (currentSort.col) {
+            if (currentSort && currentSort.col) {
                 displayList.sort((a, b) => {
                     let valA, valB;
                     if (currentSort.col === 'ten') {
@@ -988,16 +1117,39 @@
                         valA = a.totalCong; valB = b.totalCong;
                     } else if (currentSort.col === 'totalUn06') {
                         valA = a.totalUn06; valB = b.totalUn06;
+                    } else if (currentSort.col === 'avgNhan') {
+                        valA = a.validRateDays > 0 ? a.avgNhan : -1;
+                        valB = b.validRateDays > 0 ? b.avgNhan : -1;
+                    } else if (currentSort.col === 'avgHoanThanh') {
+                        valA = a.validRateDays > 0 ? a.avgHoanThanh : -1;
+                        valB = b.validRateDays > 0 ? b.avgHoanThanh : -1;
+                    } else if (currentSort.col === 'avgHuy') {
+                        valA = a.validRateDays > 0 ? a.avgHuy : -1;
+                        valB = b.validRateDays > 0 ? b.avgHuy : -1;
                     } else if (currentSort.col.startsWith('date_')) {
                         let d = currentSort.col.replace('date_', '');
-                        valA = a.dataByDate[d] ? a.dataByDate[d].doanhSo : -1;
-                        valB = b.dataByDate[d] ? b.dataByDate[d].doanhSo : -1;
+                        if (currentFilter === 'nhan') {
+                            valA = (a.dataByDate[d] && a.dataByDate[d].isValidRateDay) ? a.dataByDate[d].tyLeNhan : -1;
+                            valB = (b.dataByDate[d] && b.dataByDate[d].isValidRateDay) ? b.dataByDate[d].tyLeNhan : -1;
+                        } else if (currentFilter === 'hoanthanh') {
+                            valA = (a.dataByDate[d] && a.dataByDate[d].isValidRateDay) ? a.dataByDate[d].tyLeHoanThanh : -1;
+                            valB = (b.dataByDate[d] && b.dataByDate[d].isValidRateDay) ? b.dataByDate[d].tyLeHoanThanh : -1;
+                        } else if (currentFilter === 'huy') {
+                            valA = (a.dataByDate[d] && a.dataByDate[d].isValidRateDay) ? a.dataByDate[d].tyLeHuy : -1;
+                            valB = (b.dataByDate[d] && b.dataByDate[d].isValidRateDay) ? b.dataByDate[d].tyLeHuy : -1;
+                        } else {
+                            valA = a.dataByDate[d] ? a.dataByDate[d].doanhSo : -1;
+                            valB = b.dataByDate[d] ? b.dataByDate[d].doanhSo : -1;
+                        }
                     }
                     return currentSort.asc ? valA - valB : valB - valA;
                 });
             } else {
                 if(currentFilter === 'low') displayList.sort((a, b) => b.totalLowDays - a.totalLowDays); 
                 else if(currentFilter === 'un06') displayList.sort((a, b) => b.totalUn06 - a.totalUn06);
+                else if(currentFilter === 'nhan') displayList.sort((a, b) => (a.validRateDays>0?a.avgNhan:999) - (b.validRateDays>0?b.avgNhan:999));
+                else if(currentFilter === 'hoanthanh') displayList.sort((a, b) => (a.validRateDays>0?a.avgHoanThanh:999) - (b.validRateDays>0?b.avgHoanThanh:999));
+                else if(currentFilter === 'huy') displayList.sort((a, b) => (b.validRateDays>0?b.avgHuy:-1) - (a.validRateDays>0?a.avgHuy:-1));
                 else displayList.sort((a, b) => b.totalRev - a.totalRev); 
             }
 
@@ -1097,6 +1249,73 @@
                     <th class="sticky-header py-1.5 px-2 text-center font-bold text-gray-600 min-w-[60px]">
                         <div class="flex flex-col items-center justify-center leading-tight">
                             <span>${date}</span>
+                            <span class="text-[9px] font-normal text-gray-500">${dayName}</span>
+                        </div>
+                    </th>`;
+                });
+            } else if (currentFilter === 'nhan') {
+                legendBar.innerHTML = `
+                    <div class="flex items-center"><span class="w-3 h-3 bg-emerald-100 border border-emerald-300 inline-block mr-1"></span> &ge; ${TY_LE_NHAN_MIN}% (Tốt / Đạt chỉ tiêu)</div>
+                    <div class="flex items-center"><span class="w-3 h-3 bg-rose-100 border border-rose-300 inline-block mr-1"></span> &lt; ${TY_LE_NHAN_MIN}% (Xấu / Yếu chỉ tiêu)</div>
+                    <div class="flex items-center"><span class="w-3 h-3 bg-rose-200 border border-rose-400 inline-block mr-1 text-[8px] flex items-center justify-center font-bold text-rose-700">OFF</span> Ngày OFF (Không tính TB)</div>
+                    <div class="flex items-center"><span class="w-3 h-3 bg-amber-100 border border-amber-300 inline-block mr-1 text-[8px] flex items-center justify-center font-bold text-amber-800">UN06</span> Lỗi UN06 (Không tính TB)</div>
+                    <div class="flex items-center"><span class="text-slate-400 mr-1 font-bold">0đ</span> 0 Doanh thu (Không tính TB)</div>
+                `;
+                headerHtml += `
+                <th onclick="handleSort('avgNhan')" class="sortable sticky-header py-1.5 px-2 text-center font-bold text-teal-700 min-w-[85px] bg-teal-50 border-r border-teal-200" title="Trung bình cộng các ngày có doanh thu (loại bỏ OFF & UN06)">
+                    <div class="flex justify-center items-center gap-1">% Nhận TB ${getSortIcon('avgNhan')}</div>
+                </th>`;
+                allDates.forEach(date => {
+                    let dayName = getDayOfWeek(date);
+                    headerHtml += `
+                    <th onclick="handleSort('date_${date}')" class="sortable sticky-header py-1.5 px-2 text-center font-bold text-gray-600 min-w-[60px]">
+                        <div class="flex flex-col items-center justify-center leading-tight">
+                            <div class="flex items-center gap-1">${date} ${getSortIcon('date_'+date)}</div>
+                            <span class="text-[9px] font-normal text-gray-500">${dayName}</span>
+                        </div>
+                    </th>`;
+                });
+            } else if (currentFilter === 'hoanthanh') {
+                legendBar.innerHTML = `
+                    <div class="flex items-center"><span class="w-3 h-3 bg-emerald-100 border border-emerald-300 inline-block mr-1"></span> &ge; ${TY_LE_HOAN_THANH_MIN}% (Tốt / Đạt chỉ tiêu)</div>
+                    <div class="flex items-center"><span class="w-3 h-3 bg-rose-100 border border-rose-300 inline-block mr-1"></span> &lt; ${TY_LE_HOAN_THANH_MIN}% (Xấu / Yếu chỉ tiêu)</div>
+                    <div class="flex items-center"><span class="w-3 h-3 bg-rose-200 border border-rose-400 inline-block mr-1 text-[8px] flex items-center justify-center font-bold text-rose-700">OFF</span> Ngày OFF (Không tính TB)</div>
+                    <div class="flex items-center"><span class="w-3 h-3 bg-amber-100 border border-amber-300 inline-block mr-1 text-[8px] flex items-center justify-center font-bold text-amber-800">UN06</span> Lỗi UN06 (Không tính TB)</div>
+                    <div class="flex items-center"><span class="text-slate-400 mr-1 font-bold">0đ</span> 0 Doanh thu (Không tính TB)</div>
+                `;
+                headerHtml += `
+                <th onclick="handleSort('avgHoanThanh')" class="sortable sticky-header py-1.5 px-2 text-center font-bold text-emerald-700 min-w-[85px] bg-emerald-50 border-r border-emerald-200" title="Trung bình cộng các ngày có doanh thu (loại bỏ OFF & UN06)">
+                    <div class="flex justify-center items-center gap-1">% H.Thành TB ${getSortIcon('avgHoanThanh')}</div>
+                </th>`;
+                allDates.forEach(date => {
+                    let dayName = getDayOfWeek(date);
+                    headerHtml += `
+                    <th onclick="handleSort('date_${date}')" class="sortable sticky-header py-1.5 px-2 text-center font-bold text-gray-600 min-w-[60px]">
+                        <div class="flex flex-col items-center justify-center leading-tight">
+                            <div class="flex items-center gap-1">${date} ${getSortIcon('date_'+date)}</div>
+                            <span class="text-[9px] font-normal text-gray-500">${dayName}</span>
+                        </div>
+                    </th>`;
+                });
+            } else if (currentFilter === 'huy') {
+                let maxHuy = Math.max(0, 100 - TY_LE_HOAN_THANH_MIN);
+                legendBar.innerHTML = `
+                    <div class="flex items-center"><span class="w-3 h-3 bg-emerald-100 border border-emerald-300 inline-block mr-1"></span> &le; ${maxHuy}% (Tốt / Hủy thấp)</div>
+                    <div class="flex items-center"><span class="w-3 h-3 bg-rose-100 border border-rose-300 inline-block mr-1"></span> &gt; ${maxHuy}% (Xấu / Hủy cao)</div>
+                    <div class="flex items-center"><span class="w-3 h-3 bg-rose-200 border border-rose-400 inline-block mr-1 text-[8px] flex items-center justify-center font-bold text-rose-700">OFF</span> Ngày OFF (Không tính TB)</div>
+                    <div class="flex items-center"><span class="w-3 h-3 bg-amber-100 border border-amber-300 inline-block mr-1 text-[8px] flex items-center justify-center font-bold text-amber-800">UN06</span> Lỗi UN06 (Không tính TB)</div>
+                    <div class="flex items-center"><span class="text-slate-400 mr-1 font-bold">0đ</span> 0 Doanh thu (Không tính TB)</div>
+                `;
+                headerHtml += `
+                <th onclick="handleSort('avgHuy')" class="sortable sticky-header py-1.5 px-2 text-center font-bold text-rose-700 min-w-[85px] bg-rose-50 border-r border-rose-200" title="Trung bình cộng các ngày có doanh thu (loại bỏ OFF & UN06)">
+                    <div class="flex justify-center items-center gap-1">% Hủy TB ${getSortIcon('avgHuy')}</div>
+                </th>`;
+                allDates.forEach(date => {
+                    let dayName = getDayOfWeek(date);
+                    headerHtml += `
+                    <th onclick="handleSort('date_${date}')" class="sortable sticky-header py-1.5 px-2 text-center font-bold text-gray-600 min-w-[60px]">
+                        <div class="flex flex-col items-center justify-center leading-tight">
+                            <div class="flex items-center gap-1">${date} ${getSortIcon('date_'+date)}</div>
                             <span class="text-[9px] font-normal text-gray-500">${dayName}</span>
                         </div>
                     </th>`;
@@ -1213,6 +1432,67 @@
                             }
                         }
                     });
+                } else if (currentFilter === 'nhan') {
+                    let avgDisplay = tx.validRateDays > 0 ? (tx.avgNhan.toFixed(1) + '%') : '-';
+                    let avgClass = tx.validRateDays > 0 ? (tx.avgNhan >= TY_LE_NHAN_MIN ? 'bg-emerald-50 text-emerald-700 font-bold' : 'bg-rose-50 text-rose-600 font-bold') : 'text-slate-400';
+                    rowHtml += `<td class="py-1 px-2 text-center border-r border-teal-200 ${avgClass}">${avgDisplay}</td>`;
+
+                    allDates.forEach(date => {
+                        let dayData = tx.dataByDate[date];
+                        if (!dayData) rowHtml += `<td class="py-1 px-2 text-center text-gray-300 border-r border-slate-100">-</td>`;
+                        else if (dayData.maCong && String(dayData.maCong).toUpperCase().includes("OFF")) {
+                            rowHtml += `<td class="py-1 px-2 text-center bg-rose-50 text-rose-600 font-bold border-r border-rose-100 text-[10px]">OFF</td>`;
+                        } else if (dayData.maCong && String(dayData.maCong).toUpperCase().includes("UN06")) {
+                            rowHtml += `<td class="py-1 px-2 text-center bg-amber-50 text-amber-700 font-bold border-r border-amber-100 text-[10px]">UN06</td>`;
+                        } else if (dayData.doanhSo <= 0) {
+                            rowHtml += `<td class="py-1 px-2 text-center bg-gray-50 text-slate-400 border-r border-slate-100 text-[10px]">${dayData.maCong && dayData.maCong !== "0" ? dayData.maCong : '0đ'}</td>`;
+                        } else {
+                            let val = Math.round(dayData.tyLeNhan || 0);
+                            let cellClass = val >= TY_LE_NHAN_MIN ? 'bg-emerald-50 text-emerald-700 font-bold' : 'bg-rose-50 text-rose-600 font-bold';
+                            rowHtml += `<td class="py-1 px-2 text-center ${cellClass} border-r border-slate-100">${val}%</td>`;
+                        }
+                    });
+                } else if (currentFilter === 'hoanthanh') {
+                    let avgDisplay = tx.validRateDays > 0 ? (tx.avgHoanThanh.toFixed(1) + '%') : '-';
+                    let avgClass = tx.validRateDays > 0 ? (tx.avgHoanThanh >= TY_LE_HOAN_THANH_MIN ? 'bg-emerald-50 text-emerald-700 font-bold' : 'bg-rose-50 text-rose-600 font-bold') : 'text-slate-400';
+                    rowHtml += `<td class="py-1 px-2 text-center border-r border-emerald-200 ${avgClass}">${avgDisplay}</td>`;
+
+                    allDates.forEach(date => {
+                        let dayData = tx.dataByDate[date];
+                        if (!dayData) rowHtml += `<td class="py-1 px-2 text-center text-gray-300 border-r border-slate-100">-</td>`;
+                        else if (dayData.maCong && String(dayData.maCong).toUpperCase().includes("OFF")) {
+                            rowHtml += `<td class="py-1 px-2 text-center bg-rose-50 text-rose-600 font-bold border-r border-rose-100 text-[10px]">OFF</td>`;
+                        } else if (dayData.maCong && String(dayData.maCong).toUpperCase().includes("UN06")) {
+                            rowHtml += `<td class="py-1 px-2 text-center bg-amber-50 text-amber-700 font-bold border-r border-amber-100 text-[10px]">UN06</td>`;
+                        } else if (dayData.doanhSo <= 0) {
+                            rowHtml += `<td class="py-1 px-2 text-center bg-gray-50 text-slate-400 border-r border-slate-100 text-[10px]">${dayData.maCong && dayData.maCong !== "0" ? dayData.maCong : '0đ'}</td>`;
+                        } else {
+                            let val = Math.round(dayData.tyLeHoanThanh || 0);
+                            let cellClass = val >= TY_LE_HOAN_THANH_MIN ? 'bg-emerald-50 text-emerald-700 font-bold' : 'bg-rose-50 text-rose-600 font-bold';
+                            rowHtml += `<td class="py-1 px-2 text-center ${cellClass} border-r border-slate-100">${val}%</td>`;
+                        }
+                    });
+                } else if (currentFilter === 'huy') {
+                    let maxHuy = Math.max(0, 100 - TY_LE_HOAN_THANH_MIN);
+                    let avgDisplay = tx.validRateDays > 0 ? (tx.avgHuy.toFixed(1) + '%') : '-';
+                    let avgClass = tx.validRateDays > 0 ? (tx.avgHuy <= maxHuy ? 'bg-emerald-50 text-emerald-700 font-bold' : 'bg-rose-50 text-rose-600 font-bold') : 'text-slate-400';
+                    rowHtml += `<td class="py-1 px-2 text-center border-r border-rose-200 ${avgClass}">${avgDisplay}</td>`;
+
+                    allDates.forEach(date => {
+                        let dayData = tx.dataByDate[date];
+                        if (!dayData) rowHtml += `<td class="py-1 px-2 text-center text-gray-300 border-r border-slate-100">-</td>`;
+                        else if (dayData.maCong && String(dayData.maCong).toUpperCase().includes("OFF")) {
+                            rowHtml += `<td class="py-1 px-2 text-center bg-rose-50 text-rose-600 font-bold border-r border-rose-100 text-[10px]">OFF</td>`;
+                        } else if (dayData.maCong && String(dayData.maCong).toUpperCase().includes("UN06")) {
+                            rowHtml += `<td class="py-1 px-2 text-center bg-amber-50 text-amber-700 font-bold border-r border-amber-100 text-[10px]">UN06</td>`;
+                        } else if (dayData.doanhSo <= 0) {
+                            rowHtml += `<td class="py-1 px-2 text-center bg-gray-50 text-slate-400 border-r border-slate-100 text-[10px]">${dayData.maCong && dayData.maCong !== "0" ? dayData.maCong : '0đ'}</td>`;
+                        } else {
+                            let val = Math.round(dayData.tyLeHuy || 0);
+                            let cellClass = val <= maxHuy ? 'bg-emerald-50 text-emerald-700 font-bold' : 'bg-rose-50 text-rose-600 font-bold';
+                            rowHtml += `<td class="py-1 px-2 text-center ${cellClass} border-r border-slate-100">${val}%</td>`;
+                        }
+                    });
                 }
 
                 tr.innerHTML = rowHtml;
@@ -1236,6 +1516,36 @@
                 });
                 footerHtml += `</tr>`;
                 tbody.innerHTML += footerHtml;
+            } else if (['nhan', 'hoanthanh', 'huy'].includes(currentFilter)) {
+                let validDrivers = displayList.filter(d => d.validRateDays > 0);
+                let fleetAvg = '-';
+                if (validDrivers.length > 0) {
+                    let sumFleet = 0;
+                    if (currentFilter === 'nhan') sumFleet = validDrivers.reduce((acc, d) => acc + d.avgNhan, 0);
+                    else if (currentFilter === 'hoanthanh') sumFleet = validDrivers.reduce((acc, d) => acc + d.avgHoanThanh, 0);
+                    else if (currentFilter === 'huy') sumFleet = validDrivers.reduce((acc, d) => acc + d.avgHuy, 0);
+                    fleetAvg = (sumFleet / validDrivers.length).toFixed(1) + '%';
+                }
+
+                let footerHtml = `
+                    <tr class="bg-blue-100 font-bold text-blue-900 border-t border-blue-300 sticky bottom-0 z-10">
+                        <td class="sticky-col py-2 px-2 text-center bg-blue-100 border-blue-300">TRUNG BÌNH (${displayList.length} TX)</td>
+                        <td class="py-2 px-2 text-center border-r border-blue-300 font-black">${fleetAvg}</td>
+                `;
+                allDates.forEach(date => {
+                    let dayDrivers = displayList.filter(tx => tx.dataByDate[date] && tx.dataByDate[date].isValidRateDay);
+                    let dayAvg = '-';
+                    if (dayDrivers.length > 0) {
+                        let sumDay = 0;
+                        if (currentFilter === 'nhan') sumDay = dayDrivers.reduce((acc, tx) => acc + (tx.dataByDate[date].tyLeNhan || 0), 0);
+                        else if (currentFilter === 'hoanthanh') sumDay = dayDrivers.reduce((acc, tx) => acc + (tx.dataByDate[date].tyLeHoanThanh || 0), 0);
+                        else if (currentFilter === 'huy') sumDay = dayDrivers.reduce((acc, tx) => acc + (tx.dataByDate[date].tyLeHuy || 0), 0);
+                        dayAvg = Math.round(sumDay / dayDrivers.length) + '%';
+                    }
+                    footerHtml += `<td class="py-2 px-2 text-center border-blue-200 font-bold">${dayAvg}</td>`;
+                });
+                footerHtml += `</tr>`;
+                tbody.innerHTML += footerHtml;
             }
         }
 
@@ -1256,6 +1566,15 @@
                 allDates.forEach(date => headers.push(date));
             } else if (currentFilter === 'un06') {
                 headers.push("Tổng UN06");
+                allDates.forEach(date => headers.push(date));
+            } else if (currentFilter === 'nhan') {
+                headers.push("% Nhận TB");
+                allDates.forEach(date => headers.push(date));
+            } else if (currentFilter === 'hoanthanh') {
+                headers.push("% H.Thành TB");
+                allDates.forEach(date => headers.push(date));
+            } else if (currentFilter === 'huy') {
+                headers.push("% Hủy TB");
                 allDates.forEach(date => headers.push(date));
             }
             tsvText += headers.join("\t") + "\n"; 
@@ -1288,6 +1607,36 @@
                         if(!d) row.push("-");
                         else if (d.maCong && String(d.maCong).includes("UN06")) row.push("UN06");
                         else row.push("Không");
+                    });
+                } else if (currentFilter === 'nhan') {
+                    row.push(tx.validRateDays > 0 ? (tx.avgNhan.toFixed(1) + "%") : "-");
+                    allDates.forEach(date => {
+                        let d = tx.dataByDate[date];
+                        if (!d) row.push("-");
+                        else if (d.maCong && String(d.maCong).toUpperCase().includes("OFF")) row.push("OFF");
+                        else if (d.maCong && String(d.maCong).toUpperCase().includes("UN06")) row.push("UN06");
+                        else if (d.doanhSo <= 0) row.push(d.maCong && d.maCong !== "0" ? d.maCong : "0đ");
+                        else row.push(Math.round(d.tyLeNhan || 0) + "%");
+                    });
+                } else if (currentFilter === 'hoanthanh') {
+                    row.push(tx.validRateDays > 0 ? (tx.avgHoanThanh.toFixed(1) + "%") : "-");
+                    allDates.forEach(date => {
+                        let d = tx.dataByDate[date];
+                        if (!d) row.push("-");
+                        else if (d.maCong && String(d.maCong).toUpperCase().includes("OFF")) row.push("OFF");
+                        else if (d.maCong && String(d.maCong).toUpperCase().includes("UN06")) row.push("UN06");
+                        else if (d.doanhSo <= 0) row.push(d.maCong && d.maCong !== "0" ? d.maCong : "0đ");
+                        else row.push(Math.round(d.tyLeHoanThanh || 0) + "%");
+                    });
+                } else if (currentFilter === 'huy') {
+                    row.push(tx.validRateDays > 0 ? (tx.avgHuy.toFixed(1) + "%") : "-");
+                    allDates.forEach(date => {
+                        let d = tx.dataByDate[date];
+                        if (!d) row.push("-");
+                        else if (d.maCong && String(d.maCong).toUpperCase().includes("OFF")) row.push("OFF");
+                        else if (d.maCong && String(d.maCong).toUpperCase().includes("UN06")) row.push("UN06");
+                        else if (d.doanhSo <= 0) row.push(d.maCong && d.maCong !== "0" ? d.maCong : "0đ");
+                        else row.push(Math.round(d.tyLeHuy || 0) + "%");
                     });
                 }
                 tsvText += row.join("\t") + "\n";
@@ -1358,6 +1707,36 @@
                         if(!d) row[date] = "-";
                         else if (d.maCong && String(d.maCong).includes("UN06")) row[date] = "UN06";
                         else row[date] = "Không";
+                    });
+                } else if (currentFilter === 'nhan') {
+                    row["% Nhận TB"] = tx.validRateDays > 0 ? (tx.avgNhan.toFixed(1) + "%") : "-";
+                    allDates.forEach(date => {
+                        let d = tx.dataByDate[date];
+                        if (!d) row[date] = "-";
+                        else if (d.maCong && String(d.maCong).toUpperCase().includes("OFF")) row[date] = "OFF";
+                        else if (d.maCong && String(d.maCong).toUpperCase().includes("UN06")) row[date] = "UN06";
+                        else if (d.doanhSo <= 0) row[date] = d.maCong && d.maCong !== "0" ? d.maCong : "0đ";
+                        else row[date] = Math.round(d.tyLeNhan || 0) + "%";
+                    });
+                } else if (currentFilter === 'hoanthanh') {
+                    row["% H.Thành TB"] = tx.validRateDays > 0 ? (tx.avgHoanThanh.toFixed(1) + "%") : "-";
+                    allDates.forEach(date => {
+                        let d = tx.dataByDate[date];
+                        if (!d) row[date] = "-";
+                        else if (d.maCong && String(d.maCong).toUpperCase().includes("OFF")) row[date] = "OFF";
+                        else if (d.maCong && String(d.maCong).toUpperCase().includes("UN06")) row[date] = "UN06";
+                        else if (d.doanhSo <= 0) row[date] = d.maCong && d.maCong !== "0" ? d.maCong : "0đ";
+                        else row[date] = Math.round(d.tyLeHoanThanh || 0) + "%";
+                    });
+                } else if (currentFilter === 'huy') {
+                    row["% Hủy TB"] = tx.validRateDays > 0 ? (tx.avgHuy.toFixed(1) + "%") : "-";
+                    allDates.forEach(date => {
+                        let d = tx.dataByDate[date];
+                        if (!d) row[date] = "-";
+                        else if (d.maCong && String(d.maCong).toUpperCase().includes("OFF")) row[date] = "OFF";
+                        else if (d.maCong && String(d.maCong).toUpperCase().includes("UN06")) row[date] = "UN06";
+                        else if (d.doanhSo <= 0) row[date] = d.maCong && d.maCong !== "0" ? d.maCong : "0đ";
+                        else row[date] = Math.round(d.tyLeHuy || 0) + "%";
                     });
                 }
 
