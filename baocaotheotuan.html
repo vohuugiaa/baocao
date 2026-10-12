@@ -1158,7 +1158,7 @@
             let allDates = getSortedDates();
             
             let headerHtml = `<tr>
-                <th onclick="handleSort('ten')" class="sortable sticky-corner py-1.5 px-2 text-left font-bold text-gray-700 w-40 min-w-[160px]">
+                <th onclick="handleSort('ten')" class="sortable sticky-corner py-1.5 px-2 text-left font-bold text-gray-700 min-w-[210px]">
                     <div class="flex justify-between items-center">Tên Tài Xế & Tổ ${getSortIcon('ten')}</div>
                 </th>`;
 
@@ -1262,7 +1262,7 @@
                     <div class="flex items-center"><span class="text-slate-400 mr-1 font-bold">0đ</span> 0 Doanh thu (Không tính TB)</div>
                 `;
                 headerHtml += `
-                <th onclick="handleSort('avgNhan')" class="sortable sticky-header py-1.5 px-2 text-center font-bold text-teal-700 min-w-[85px] bg-teal-50 border-r border-teal-200" title="Trung bình cộng các ngày có doanh thu (loại bỏ OFF & UN06)">
+                <th onclick="handleSort('avgNhan')" class="sortable sticky-header py-1.5 px-2 text-center font-bold text-teal-700 min-w-[100px] bg-teal-50 border-r border-teal-200" title="Trung bình cộng các ngày có doanh thu (loại bỏ OFF & UN06)">
                     <div class="flex justify-center items-center gap-1">% Nhận TB ${getSortIcon('avgNhan')}</div>
                 </th>`;
                 allDates.forEach(date => {
@@ -1284,7 +1284,7 @@
                     <div class="flex items-center"><span class="text-slate-400 mr-1 font-bold">0đ</span> 0 Doanh thu (Không tính TB)</div>
                 `;
                 headerHtml += `
-                <th onclick="handleSort('avgHoanThanh')" class="sortable sticky-header py-1.5 px-2 text-center font-bold text-emerald-700 min-w-[85px] bg-emerald-50 border-r border-emerald-200" title="Trung bình cộng các ngày có doanh thu (loại bỏ OFF & UN06)">
+                <th onclick="handleSort('avgHoanThanh')" class="sortable sticky-header py-1.5 px-2 text-center font-bold text-emerald-700 min-w-[100px] bg-emerald-50 border-r border-emerald-200" title="Trung bình cộng các ngày có doanh thu (loại bỏ OFF & UN06)">
                     <div class="flex justify-center items-center gap-1">% H.Thành TB ${getSortIcon('avgHoanThanh')}</div>
                 </th>`;
                 allDates.forEach(date => {
@@ -1307,7 +1307,7 @@
                     <div class="flex items-center"><span class="text-slate-400 mr-1 font-bold">0đ</span> 0 Doanh thu (Không tính TB)</div>
                 `;
                 headerHtml += `
-                <th onclick="handleSort('avgHuy')" class="sortable sticky-header py-1.5 px-2 text-center font-bold text-rose-700 min-w-[85px] bg-rose-50 border-r border-rose-200" title="Trung bình cộng các ngày có doanh thu (loại bỏ OFF & UN06)">
+                <th onclick="handleSort('avgHuy')" class="sortable sticky-header py-1.5 px-2 text-center font-bold text-rose-700 min-w-[100px] bg-rose-50 border-r border-rose-200" title="Trung bình cộng các ngày có doanh thu (loại bỏ OFF & UN06)">
                     <div class="flex justify-center items-center gap-1">% Hủy TB ${getSortIcon('avgHuy')}</div>
                 </th>`;
                 allDates.forEach(date => {
@@ -1339,11 +1339,11 @@
                 tr.className = "hover:bg-slate-100 transition";
 
                 let rowHtml = `
-                    <td class="sticky-col py-1 px-2 bg-white group-hover:bg-slate-50">
-                        <div class="font-bold text-slate-800 truncate">${tx.ten}</div>
+                    <td class="sticky-col py-1 px-2 bg-white group-hover:bg-slate-50 min-w-[210px]">
+                        <div class="font-bold text-slate-800">${tx.ten}</div>
                         <div class="flex items-center gap-1 mt-0.5">
-                            <span class="text-[9px] text-gray-500">Mã: ${tx.ma}</span>
-                            <span class="text-[9px] font-semibold bg-slate-100 text-slate-600 px-1 rounded border border-slate-200 truncate max-w-[80px]" title="${tx.to}">${tx.to}</span>
+                            <span class="text-[9px] text-gray-500 whitespace-nowrap">Mã: ${tx.ma}</span>
+                            <span class="text-[9px] font-semibold bg-slate-100 text-slate-600 px-1 rounded border border-slate-200 whitespace-nowrap" title="${tx.to}">${tx.to}</span>
                         </div>
                     </td>
                 `;
@@ -1502,7 +1502,7 @@
             if (currentFilter === 'all') {
                 let footerHtml = `
                     <tr class="bg-blue-100 font-bold text-blue-900 border-t border-blue-300 sticky bottom-0 z-10">
-                        <td class="sticky-col py-2 px-2 text-center bg-blue-100 border-blue-300">TỔNG (${displayList.length} TX)</td>
+                        <td class="sticky-col py-2 px-2 text-center bg-blue-100 border-blue-300 min-w-[210px]">TỔNG (${displayList.length} TX)</td>
                         <td class="py-2 px-2 text-right border-r border-blue-300">${formatMoney(totalAllRev)}</td>
                         <td class="py-2 px-2 text-right border-r border-blue-300">-</td>
                 `;
@@ -1529,7 +1529,7 @@
 
                 let footerHtml = `
                     <tr class="bg-blue-100 font-bold text-blue-900 border-t border-blue-300 sticky bottom-0 z-10">
-                        <td class="sticky-col py-2 px-2 text-center bg-blue-100 border-blue-300">TRUNG BÌNH (${displayList.length} TX)</td>
+                        <td class="sticky-col py-2 px-2 text-center bg-blue-100 border-blue-300 min-w-[210px]">TRUNG BÌNH (${displayList.length} TX)</td>
                         <td class="py-2 px-2 text-center border-r border-blue-300 font-black">${fleetAvg}</td>
                 `;
                 allDates.forEach(date => {
